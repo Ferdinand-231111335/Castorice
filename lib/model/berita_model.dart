@@ -1,25 +1,40 @@
 class Berita {
-  final int? id; // id bisa null kalau data baru (belum disimpan di DB)
+  final int? id;
   final String judul;
   final String isi;
+  final String gambar;
 
-  Berita({this.id, required this.judul, required this.isi});
+  Berita({
+    this.id,
+    required this.judul,
+    required this.isi,
+    required this.gambar,
+  });
 
-  // Convert dari Map (data DB) ke object
-  factory Berita.fromMap(Map<String, dynamic> map) {
+  factory Berita.fromJson(Map<String, dynamic> json) {
     return Berita(
-      id: map['id'],
-      judul: map['judul'],
-      isi: map['isi'],
+      id: json['id'],
+      judul: json['judul'],
+      isi: json['isi'],
+      gambar: json['gambar'],
     );
   }
 
-  // Convert dari object ke Map (buat simpan ke DB)
+  factory Berita.fromMap(Map<String, dynamic> map) {
+    return Berita(
+      id: map['id'],
+      judul: map['judul'] ?? "",
+      isi: map['isi'] ?? "",
+      gambar: map['gambar'] ?? "",
+    );
+  }
+
   Map<String, dynamic> toMap() {
     return {
       'id': id,
       'judul': judul,
       'isi': isi,
+      'gambar': gambar,
     };
   }
 }

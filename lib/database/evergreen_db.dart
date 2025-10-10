@@ -3,6 +3,7 @@ import 'package:path/path.dart';
 import '../model/berita_model.dart';
 import '../model/misi_model.dart';
 import '../model/poin_model.dart';
+import '../model/user_model.dart';
 
 class EvergreenDb {
   static final EvergreenDb _instance = EvergreenDb._internal();
@@ -26,11 +27,12 @@ class EvergreenDb {
       version: 1,
       onCreate: (db, version) async {
         await db.execute('''
-          CREATE TABLE berita(
+          CREATE TABLE berita (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            judul TEXT,
-            isi TEXT
-          )
+            judul TEXT NOT NULL,
+            isi TEXT NOT NULL,
+            gambar TEXT NOT NULL
+          );
         ''');
 
         await db.execute('''
@@ -46,6 +48,15 @@ class EvergreenDb {
           CREATE TABLE poin(
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             total INTEGER
+          )
+        ''');
+
+        await db.execute('''
+          CREATE TABLE user(
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            username TEXT,
+            email TEXT,
+            password TEXT
           )
         ''');
       },
@@ -111,4 +122,30 @@ class EvergreenDb {
     }
     return 0;
   }
+
+  Future<void> resetDatabase() async {
+    final dbPath = await getDatabasesPath();
+    final path = join(dbPath, "evergreen.db");
+
+    await deleteDatabase(path);
+    _db = null; // reset instance
+  }
+
+  Future<int> insertUser(User user) async {
+  final db = await database;
+  return await db.insert("user", user.toMap());
+}
+
+Future<User?> getUserByEmail(String email, String password) async {
+  final db = await database;
+  final result = await db.query(
+    "user",
+    where: "email = ? AND password = ?",
+    whereArgs: [email, password],
+  );
+  if (result.isNotEmpty) {
+    return User.fromMap(result.first);
+  }
+  return null;
+}
 }
