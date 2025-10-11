@@ -11,7 +11,6 @@ Future<void> main() async {
   sqfliteFfiInit();
   databaseFactory = databaseFactoryFfi;
 
-  // selama development kalau mau reset database
   await EvergreenDb().resetDatabase();
 
   final prefs = await SharedPreferences.getInstance();

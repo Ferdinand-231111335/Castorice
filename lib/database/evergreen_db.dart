@@ -63,7 +63,7 @@ class EvergreenDb {
     );
   }
 
-  // ===== Berita =====
+
   Future<int> insertBerita(Berita berita) async {
     final db = await database;
     return await db.insert("berita", berita.toMap());
@@ -81,7 +81,7 @@ class EvergreenDb {
     await db.delete("berita");
   }
 
-  // ===== Misi =====
+
   Future<int> insertMisi(Misi misi) async {
     final db = await database;
     return await db.insert("misi", misi.toMap());
@@ -98,7 +98,7 @@ class EvergreenDb {
     await db.delete("misi");
   }
 
-  // ===== Poin =====
+
   Future<int> insertPoin(Poin poin) async {
     final db = await database;
     return await db.insert("poin", poin.toMap());
@@ -128,7 +128,7 @@ class EvergreenDb {
     final path = join(dbPath, "evergreen.db");
 
     await deleteDatabase(path);
-    _db = null; // reset instance
+    _db = null;
   }
 
   Future<int> insertUser(User user) async {
@@ -148,4 +148,19 @@ Future<User?> getUserByEmail(String email, String password) async {
   }
   return null;
 }
+
+  Future<Berita?> getBeritaById(int id) async {
+    final db = await database;
+    final result = await db.query(
+      'berita',
+      where: 'id = ?',
+      whereArgs: [id],
+    );
+    if (result.isNotEmpty) {
+      return Berita.fromMap(result.first);
+    }
+    return null;
+  }
+
+
 }

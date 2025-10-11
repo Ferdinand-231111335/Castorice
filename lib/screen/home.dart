@@ -7,9 +7,9 @@ import '../database/evergreen_db.dart';
 import '../model/berita_model.dart';
 import '../model/misi_model.dart';
 import '../model/poin_model.dart';
-import 'berita.dart';
-import 'misi.dart';
-import 'poin.dart';
+import 'berita_page.dart';
+import 'misi_dart.dart';
+import 'poin_page.dart';
 
 class Home extends StatefulWidget {
   const Home({super.key});
@@ -29,19 +29,16 @@ class _HomeState extends State<Home> {
   }
 
   Future<void> _loadDataFromDb() async {
-    // cek berita
     final beritaData = await db.getAllBerita();
     if (beritaData.isEmpty) {
       await _insertBeritaFromJson();
     }
 
-    // cek misi
     final misiData = await db.getAllMisi();
     if (misiData.isEmpty) {
       await _insertMisiFromJson();
     }
 
-    // cek poin
     int currentPoin = await db.getTotalPoin();
     if (currentPoin == 0) {
       await db.insertPoin(Poin(total: 0));
@@ -53,7 +50,7 @@ class _HomeState extends State<Home> {
   List<dynamic> jsonData = json.decode(jsonString);
 
   for (var item in jsonData) {
-    final berita = Berita.fromJson(item);  // pakai fromJson
+    final berita = Berita.fromJson(item);
     await db.insertBerita(berita);
   }
 }
@@ -63,7 +60,7 @@ Future<void> _insertMisiFromJson() async {
   List<dynamic> jsonData = json.decode(jsonString);
 
   for (var item in jsonData) {
-    final misi = Misi.fromJson(item);  // pakai fromJson
+    final misi = Misi.fromJson(item);
     await db.insertMisi(misi);
   }
 }
@@ -97,7 +94,7 @@ Future<void> _insertMisiFromJson() async {
             icon: const Icon(Icons.logout),
             onPressed: () async {
               final prefs = await SharedPreferences.getInstance();
-              await prefs.remove('isLoggedIn'); // atau prefs.setBool('isLoggedIn', false);
+              await prefs.remove('isLoggedIn');
 
               Navigator.pushAndRemoveUntil(
                 context,
@@ -107,7 +104,6 @@ Future<void> _insertMisiFromJson() async {
             },
           )
         ],
-
       ),
       body: _pages[_selectedIndex],
       bottomNavigationBar: BottomNavigationBar(

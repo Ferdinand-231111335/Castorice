@@ -11,7 +11,6 @@ class Misi {
     required this.poin,
   });
 
-  // dari database (Map)
   factory Misi.fromMap(Map<String, dynamic> map) {
     return Misi(
       id: map['id'],
@@ -21,7 +20,6 @@ class Misi {
     );
   }
 
-  // ke database (Map)
   Map<String, dynamic> toMap() {
     return {
       'id': id,
@@ -31,7 +29,6 @@ class Misi {
     };
   }
 
-  // dari JSON
   factory Misi.fromJson(Map<String, dynamic> json) {
     return Misi(
       id: json['id'],
@@ -41,7 +38,6 @@ class Misi {
     );
   }
 
-  // ke JSON
   Map<String, dynamic> toJson() {
     return {
       'id': id,

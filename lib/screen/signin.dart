@@ -23,10 +23,9 @@ class _SignInState extends State<SignIn> {
     );
 
     if (user != null) {
-      // simpan status login ke SharedPreferences
       final prefs = await SharedPreferences.getInstance();
       await prefs.setBool('isLoggedIn', true);
-      await prefs.setString('email', user.email); // simpan email kalau mau dipakai nanti
+      await prefs.setString('email', user.email);
 
       Navigator.pushReplacement(
         context,

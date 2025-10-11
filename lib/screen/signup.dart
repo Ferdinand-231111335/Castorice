@@ -30,7 +30,7 @@ class _SignUpState extends State<SignUp> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Registrasi berhasil")),
       );
-      Navigator.pop(context); // balik ke login
+      Navigator.pop(context);
     }
   }
 
