@@ -11,7 +11,7 @@ Future<void> main() async {
   sqfliteFfiInit();
   databaseFactory = databaseFactoryFfi;
 
-  await EvergreenDb().resetDatabase();
+  // await EvergreenDb().resetDatabase();
 
   final prefs = await SharedPreferences.getInstance();
   final bool isLoggedIn = prefs.getBool('isLoggedIn') ?? false;

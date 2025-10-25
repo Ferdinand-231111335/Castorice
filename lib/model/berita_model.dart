@@ -1,40 +1,43 @@
 class Berita {
-  final int? id;
   final String judul;
   final String isi;
-  final String gambar;
+  final String sumber;
+  final String tanggal;
 
   Berita({
-    this.id,
     required this.judul,
     required this.isi,
-    required this.gambar,
+    required this.sumber,
+    required this.tanggal,
   });
 
   factory Berita.fromJson(Map<String, dynamic> json) {
-    return Berita(
-      id: json['id'],
-      judul: json['judul'],
-      isi: json['isi'],
-      gambar: json['gambar'],
-    );
-  }
+    final fields = json['fields'] ?? {};
 
-  factory Berita.fromMap(Map<String, dynamic> map) {
-    return Berita(
-      id: map['id'],
-      judul: map['judul'] ?? "",
-      isi: map['isi'] ?? "",
-      gambar: map['gambar'] ?? "",
-    );
-  }
+    String sumber = 'Tidak diketahui';
+    if (fields['source'] != null && (fields['source'] as List).isNotEmpty) {
+      sumber = fields['source'][0]['name'] ?? 'Tidak diketahui';
+    }
 
-  Map<String, dynamic> toMap() {
-    return {
-      'id': id,
-      'judul': judul,
-      'isi': isi,
-      'gambar': gambar,
-    };
+    String tanggal = 'Tanggal tidak diketahui';
+    if (fields['date'] != null && fields['date']['created'] != null) {
+      tanggal = fields['date']['created'];
+    }
+
+    String isi = '';
+    if (fields['body-html'] != null && fields['body-html'].toString().isNotEmpty) {
+      isi = fields['body-html'].toString().replaceAll(RegExp(r'<[^>]*>'), '');
+    } else if (fields['body'] != null && fields['body'].toString().isNotEmpty) {
+      isi = fields['body'].toString();
+    } else {
+      isi = '(Tidak ada isi berita)';
+    }
+
+    return Berita(
+      judul: fields['title'] ?? 'Tanpa Judul',
+      isi: isi,
+      sumber: sumber,
+      tanggal: tanggal,
+    );
   }
 }

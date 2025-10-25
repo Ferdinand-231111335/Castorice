@@ -16,32 +16,37 @@ class _SignInState extends State<SignIn> {
   final emailController = TextEditingController();
   final passwordController = TextEditingController();
 
-  void _login() async {
-    final user = await db.getUserByEmail(
-      emailController.text,
-      passwordController.text,
+Future<void> _login() async {
+  final user = await db.getUserByEmail(
+    emailController.text.trim(),
+    passwordController.text.trim(),
+  );
+
+  if (user != null) {
+    final prefs = await SharedPreferences.getInstance();
+
+    await prefs.setBool('isLoggedIn', true);
+    await prefs.setString('username', user.username);
+    await prefs.setString('email', user.email);
+
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (_) => const Home()),
     );
-
-    if (user != null) {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setBool('isLoggedIn', true);
-      await prefs.setString('email', user.email);
-
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (_) => const Home()),
-      );
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Email atau password salah")),
-      );
-    }
+  } else {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text("Email atau password salah")),
+    );
   }
+}
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("Sign In"), backgroundColor: Colors.green),
+      appBar: AppBar(
+        title: const Text("Sign In"),
+        backgroundColor: Colors.green,
+      ),
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(

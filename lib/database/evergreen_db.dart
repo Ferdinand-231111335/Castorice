@@ -1,6 +1,5 @@
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
-import '../model/berita_model.dart';
 import '../model/misi_model.dart';
 import '../model/poin_model.dart';
 import '../model/user_model.dart';
@@ -26,14 +25,6 @@ class EvergreenDb {
       path,
       version: 1,
       onCreate: (db, version) async {
-        await db.execute('''
-          CREATE TABLE berita (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            judul TEXT NOT NULL,
-            isi TEXT NOT NULL,
-            gambar TEXT NOT NULL
-          );
-        ''');
 
         await db.execute('''
           CREATE TABLE misi(
@@ -62,25 +53,6 @@ class EvergreenDb {
       },
     );
   }
-
-
-  Future<int> insertBerita(Berita berita) async {
-    final db = await database;
-    return await db.insert("berita", berita.toMap());
-  }
-
-  Future<List<Berita>> getAllBerita() async {
-    final db = await database;
-    final List<Map<String, dynamic>> maps =
-        await db.query("berita", orderBy: "id DESC");
-    return maps.map((e) => Berita.fromMap(e)).toList();
-  }
-
-  Future<void> clearBerita() async {
-    final db = await database;
-    await db.delete("berita");
-  }
-
 
   Future<int> insertMisi(Misi misi) async {
     final db = await database;
@@ -148,19 +120,5 @@ Future<User?> getUserByEmail(String email, String password) async {
   }
   return null;
 }
-
-  Future<Berita?> getBeritaById(int id) async {
-    final db = await database;
-    final result = await db.query(
-      'berita',
-      where: 'id = ?',
-      whereArgs: [id],
-    );
-    if (result.isNotEmpty) {
-      return Berita.fromMap(result.first);
-    }
-    return null;
-  }
-
 
 }

@@ -1,10 +1,10 @@
 import 'dart:convert';
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:flutter/material.dart';
+import 'package:project_kelompok/screen/about.dart';
 import 'package:project_kelompok/screen/signin.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../database/evergreen_db.dart';
-import '../model/berita_model.dart';
 import '../model/misi_model.dart';
 import '../model/poin_model.dart';
 import 'berita_page.dart';
@@ -21,19 +21,23 @@ class Home extends StatefulWidget {
 class _HomeState extends State<Home> {
   final EvergreenDb db = EvergreenDb();
   int _selectedIndex = 0;
+  String? username;
 
   @override
   void initState() {
     super.initState();
     _loadDataFromDb();
+    _loadUserData();
+  }
+
+  Future<void> _loadUserData() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      username = prefs.getString('username') ?? '';
+    });
   }
 
   Future<void> _loadDataFromDb() async {
-    final beritaData = await db.getAllBerita();
-    if (beritaData.isEmpty) {
-      await _insertBeritaFromJson();
-    }
-
     final misiData = await db.getAllMisi();
     if (misiData.isEmpty) {
       await _insertMisiFromJson();
@@ -45,26 +49,15 @@ class _HomeState extends State<Home> {
     }
   }
 
- Future<void> _insertBeritaFromJson() async {
-  String jsonString = await rootBundle.loadString('assets/berita.json');
-  List<dynamic> jsonData = json.decode(jsonString);
+  Future<void> _insertMisiFromJson() async {
+    String jsonString = await rootBundle.loadString('assets/misi.json');
+    List<dynamic> jsonData = json.decode(jsonString);
 
-  for (var item in jsonData) {
-    final berita = Berita.fromJson(item);
-    await db.insertBerita(berita);
+    for (var item in jsonData) {
+      final misi = Misi.fromJson(item);
+      await db.insertMisi(misi);
+    }
   }
-}
-
-Future<void> _insertMisiFromJson() async {
-  String jsonString = await rootBundle.loadString('assets/misi.json');
-  List<dynamic> jsonData = json.decode(jsonString);
-
-  for (var item in jsonData) {
-    final misi = Misi.fromJson(item);
-    await db.insertMisi(misi);
-  }
-}
-
 
   final List<Widget> _pages = const [
     BeritaPage(),
@@ -78,6 +71,17 @@ Future<void> _insertMisiFromJson() async {
     });
   }
 
+  Future<void> _logout(BuildContext context) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.clear();
+
+    Navigator.pushAndRemoveUntil(
+      context,
+      MaterialPageRoute(builder: (_) => const SignIn()),
+      (route) => false,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -89,23 +93,44 @@ Future<void> _insertMisiFromJson() async {
           style: TextStyle(fontWeight: FontWeight.bold, fontSize: 22),
         ),
         centerTitle: true,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.logout),
-            onPressed: () async {
-              final prefs = await SharedPreferences.getInstance();
-              await prefs.remove('isLoggedIn');
-
-              Navigator.pushAndRemoveUntil(
-                context,
-                MaterialPageRoute(builder: (_) => const SignIn()),
-                (route) => false,
-              );
-            },
-          )
-        ],
       ),
+
+      drawer: Drawer(
+        child: ListView(
+          children: [
+            UserAccountsDrawerHeader(
+              decoration: const BoxDecoration(color: Colors.green),
+              accountName: Text(username ?? 'Pengguna'),
+              accountEmail: const Text(''),
+              currentAccountPicture: const CircleAvatar(
+                backgroundColor: Colors.white,
+                child: Icon(Icons.person, size: 40, color: Colors.green),
+              ),
+            ),
+            ListTile(
+              leading: const Icon(Icons.info),
+              title: const Text('Tentang Aplikasi'),
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const About()),
+                );
+              },
+            ),
+
+            const Divider(),
+            ListTile(
+              leading: const Icon(Icons.logout, color: Colors.red),
+              title: const Text('Logout', style: TextStyle(color: Colors.red)),
+              onTap: () => _logout(context),
+            ),
+          ],
+        ),
+      ),
+
       body: _pages[_selectedIndex],
+
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _selectedIndex,
         onTap: _onItemTapped,
