@@ -3,9 +3,11 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../database/evergreen_db.dart';
 import 'home.dart';
 import 'signup.dart';
+import '../main.dart';
 
 class SignIn extends StatefulWidget {
-  const SignIn({super.key});
+  final ThemeChangeCallback toggleTheme;
+  const SignIn({super.key, required this.toggleTheme}); 
 
   @override
   State<SignIn> createState() => _SignInState();
@@ -26,17 +28,28 @@ Future<void> _login() async {
     final prefs = await SharedPreferences.getInstance();
 
     await prefs.setBool('isLoggedIn', true);
+    await prefs.setInt('userId', user.id!); // SIMPAN USER ID DI SINI
     await prefs.setString('username', user.username);
     await prefs.setString('email', user.email);
+    if (user.profilePicture != null) {
+      await prefs.setString('profilePicture', user.profilePicture!); // Simpan path foto profil
+    } else {
+      await prefs.remove('profilePicture');
+    }
 
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(builder: (_) => const Home()),
-    );
+    if (mounted) {
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(builder: (_) => Home(toggleTheme: widget.toggleTheme)),
+        (route) => false,
+      );
+    }
   } else {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text("Email atau password salah")),
-    );
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Email atau password salah")),
+      );
+    }
   }
 }
 

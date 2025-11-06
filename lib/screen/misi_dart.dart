@@ -3,7 +3,7 @@ import '../database/evergreen_db.dart';
 import '../model/misi_model.dart';
 
 class MisiPage extends StatefulWidget {
-  const MisiPage({super.key});
+  const MisiPage({super.key, required List<dynamic> listMisi});
 
   @override
   State<MisiPage> createState() => _MisiPageState();

@@ -18,7 +18,27 @@ class _BeritaPageState extends State<BeritaPage> {
   @override
   void initState() {
     super.initState();
-    _beritaFuture = api.fetchReports();
+    _beritaFuture = _loadReports(); // Panggil fungsi pemuat baru
+  }
+
+  // FUNGSI BARU DENGAN LOGIKA FALLBACK
+  Future<List<Berita>> _loadReports() async {
+    try {
+      // 1. Coba ambil dari API eksternal
+      return await api.fetchReports();
+    } catch (e) {
+      // 2. Jika gagal (termasuk Error 403), ambil dari data lokal
+      print('API Error (Fallback Activated): $e');
+      if (mounted) {
+         ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Gagal mengambil data dari ReliefWeb API. Menggunakan data arsip lokal.'),
+              backgroundColor: Colors.orange,
+            ),
+          );
+      }
+      return await api.fetchLocalReports(); // Ambil dari data lokal
+    }
   }
 
   String formatTanggal(String tanggal) {
@@ -39,7 +59,8 @@ class _BeritaPageState extends State<BeritaPage> {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
           } else if (snapshot.hasError) {
-            return Center(child: Text('Terjadi kesalahan: ${snapshot.error}'));
+            // Tampilkan error jika bahkan data lokal gagal dimuat
+            return Center(child: Text('Terjadi kesalahan fatal: ${snapshot.error}'));
           } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
             return const Center(child: Text('Tidak ada berita tersedia.'));
           }
@@ -48,7 +69,7 @@ class _BeritaPageState extends State<BeritaPage> {
           return RefreshIndicator(
             onRefresh: () async {
               setState(() {
-                _beritaFuture = api.fetchReports();
+                _beritaFuture = _loadReports(); // Refresh memanggil ulang logika fallback
               });
             },
             child: ListView.builder(

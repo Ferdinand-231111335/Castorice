@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:flutter/services.dart';
 import '../model/berita_model.dart';
 
 class ReliefWebApi {
@@ -22,5 +23,19 @@ class ReliefWebApi {
     } else {
       throw Exception('Gagal mengambil data dari ReliefWeb API (${response.statusCode})');
     }
+  }
+
+  Future<List<Berita>> fetchLocalReports() async {
+    final String response = await rootBundle.loadString('assets/berita.json');
+    final List<dynamic> data = json.decode(response);
+    
+    return data.map<Berita>((item) {
+      return Berita(
+        judul: item['judul'] ?? 'Tanpa Judul',
+        isi: item['isi'] ?? '(Tidak ada isi berita)',
+        sumber: 'Arsip Lokal',
+        tanggal: DateTime.now().toIso8601String(),
+      );
+    }).toList();
   }
 }

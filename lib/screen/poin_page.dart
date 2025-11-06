@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:project_kelompok/model/tiket_model.dart';
 import '../database/evergreen_db.dart';
 
 class PoinPage extends StatefulWidget {
@@ -29,11 +30,20 @@ class _PoinPageState extends State<PoinPage> {
     int current = await db.getTotalPoin();
     if (current >= biaya) {
       await db.updatePoin(1, current - biaya);
+      
+      await db.insertTicket(
+        Ticket(
+          hadiah: hadiah,
+          poin: biaya, 
+          tanggal: DateTime.now().toIso8601String(),
+        ),
+      );
+
       setState(() {
         totalPoin -= biaya;
       });
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Berhasil menukar $biaya poin untuk $hadiah")),
+        SnackBar(content: Text("Berhasil menukar $biaya poin untuk $hadiah. Tiket telah dicatat.")),
       );
     } else {
       ScaffoldMessenger.of(context).showSnackBar(

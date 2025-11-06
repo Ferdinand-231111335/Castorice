@@ -1,3 +1,4 @@
+import 'package:project_kelompok/model/tiket_model.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
 import '../model/misi_model.dart';
@@ -23,7 +24,7 @@ class EvergreenDb {
 
     return await openDatabase(
       path,
-      version: 1,
+      version: 3,
       onCreate: (db, version) async {
 
         await db.execute('''
@@ -47,10 +48,37 @@ class EvergreenDb {
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             username TEXT,
             email TEXT,
-            password TEXT
+            password TEXT,
+            profilePicture TEXT 
+          )
+        ''');
+        
+        await db.execute('''
+          CREATE TABLE ticket(
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            hadiah TEXT,
+            poin INTEGER,
+            tanggal TEXT
           )
         ''');
       },
+      onUpgrade: (db, oldVersion, newVersion) async {
+        if (oldVersion < 2) {
+          await db.execute('''
+            CREATE TABLE ticket(
+              id INTEGER PRIMARY KEY AUTOINCREMENT,
+              hadiah TEXT,
+              poin INTEGER,
+              tanggal TEXT
+            )
+          ''');
+        }
+        if (oldVersion < 3) {
+          await db.execute('''
+            ALTER TABLE user ADD COLUMN profilePicture TEXT;
+          ''');
+        }
+      }
     );
   }
 
@@ -95,6 +123,20 @@ class EvergreenDb {
     return 0;
   }
 
+  Future<int> insertTicket(Ticket ticket) async {
+    final db = await database;
+    return await db.insert("ticket", ticket.toMap());
+  }
+  
+  Future<List<Ticket>> getAllTickets() async {
+    final db = await database;
+    final List<Map<String, dynamic>> maps = await db.query(
+      "ticket",
+      orderBy: "id DESC", 
+    );
+    return maps.map((e) => Ticket.fromMap(e)).toList();
+  }
+
   Future<void> resetDatabase() async {
     final dbPath = await getDatabasesPath();
     final path = join(dbPath, "evergreen.db");
@@ -104,21 +146,56 @@ class EvergreenDb {
   }
 
   Future<int> insertUser(User user) async {
-  final db = await database;
-  return await db.insert("user", user.toMap());
-}
-
-Future<User?> getUserByEmail(String email, String password) async {
-  final db = await database;
-  final result = await db.query(
-    "user",
-    where: "email = ? AND password = ?",
-    whereArgs: [email, password],
-  );
-  if (result.isNotEmpty) {
-    return User.fromMap(result.first);
+    final db = await database;
+    return await db.insert("user", user.toMap());
   }
-  return null;
-}
+  
+  Future<int> updateUser(User user) async {
+    final db = await database;
+    return await db.update(
+      "user",
+      user.toMap(),
+      where: "id = ?",
+      whereArgs: [user.id],
+    );
+  }
 
+  Future<User?> getUserByEmail(String email, String password) async {
+    final db = await database;
+    final result = await db.query(
+      "user",
+      where: "email = ? AND password = ?",
+      whereArgs: [email, password],
+    );
+    if (result.isNotEmpty) {
+      return User.fromMap(result.first);
+    }
+    return null;
+  }
+
+  Future<User?> getUserByEmailOrUsername(String email, String username) async {
+    final db = await database;
+    final result = await db.query(
+      "user",
+      where: "email = ? OR username = ?",
+      whereArgs: [email, username],
+    );
+    if (result.isNotEmpty) {
+      return User.fromMap(result.first);
+    }
+    return null;
+  }
+
+  Future<User?> getUserById(int id) async {
+    final db = await database;
+    final result = await db.query(
+      "user",
+      where: "id = ?",
+      whereArgs: [id],
+    );
+    if (result.isNotEmpty) {
+      return User.fromMap(result.first);
+    }
+    return null;
+  }
 }
