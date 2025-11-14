@@ -7,7 +7,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as p; 
 
 import '../database/evergreen_db.dart';
-import '../model/user_model.dart';
+ import '../model/user_model.dart';
 import 'signin.dart';
 import '../main.dart';
 
@@ -24,7 +24,7 @@ class _SettingsPageState extends State<SettingsPage> {
   bool isNotificationEnabled = true;
   String username = 'Memuat...';
   String email = 'Memuat...';
-  String? profilePicturePath; // Tambahkan ini
+  String? profilePicturePath;
   int? userId;
   final EvergreenDb db = EvergreenDb();
 
@@ -43,7 +43,7 @@ class _SettingsPageState extends State<SettingsPage> {
         username = prefs.getString('username') ?? 'Pengguna';
         email = prefs.getString('email') ?? 'email@contoh.com';
         userId = prefs.getInt('userId');
-        profilePicturePath = prefs.getString('profilePicture'); // Muat path foto profil
+        profilePicturePath = prefs.getString('profilePicture');
       });
     }
   }
@@ -113,14 +113,13 @@ class _SettingsPageState extends State<SettingsPage> {
     );
   }
 
-  // --- Halaman Edit Profil Pengguna yang Berfungsi ---
   void _showProfilePage(BuildContext context) {
     Navigator.of(context).push(
       MaterialPageRoute(
         builder: (context) => EditProfilePage(
           currentUsername: username,
           currentEmail: email,
-          currentProfilePicturePath: profilePicturePath, // Kirim path gambar
+          currentProfilePicturePath: profilePicturePath,
           userId: userId,
           onProfileUpdated: (newUsername, newEmail, newProfilePicturePath) {
             setState(() {
@@ -187,9 +186,6 @@ class _SettingsPageState extends State<SettingsPage> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: <Widget>[
             
-            // ===================================
-            // KATEGORI: AKUN & PRIVASI
-            // ===================================
             Padding(
               padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
               child: Text(
@@ -216,9 +212,6 @@ class _SettingsPageState extends State<SettingsPage> {
             ),
             const Divider(),
             
-            // ===================================
-            // KATEGORI: TAMPILAN
-            // ===================================
             Padding(
               padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
               child: Text(
@@ -239,9 +232,6 @@ class _SettingsPageState extends State<SettingsPage> {
             ),
             const Divider(),
 
-            // ===================================
-            // KATEGORI: TIKET
-            // ===================================
             Padding(
               padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
               child: Text(
@@ -265,9 +255,6 @@ class _SettingsPageState extends State<SettingsPage> {
             ),
             const Divider(),
             
-            // ===================================
-            // KATEGORI: UMUM
-            // ===================================
             Padding(
               padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
               child: Text(
@@ -288,10 +275,7 @@ class _SettingsPageState extends State<SettingsPage> {
               onChanged: _toggleNotification,
             ),
             const Divider(),
-            
-            // ===================================
-            // KATEGORI: DATA & PRIVASI
-            // ===================================
+
             Padding(
               padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
               child: Text(
@@ -317,21 +301,19 @@ class _SettingsPageState extends State<SettingsPage> {
   }
 }
 
-// =========================================================================
-// WIDGET BARU UNTUK EDIT PROFIL DENGAN FOTO PROFIL
-// =========================================================================
+
 class EditProfilePage extends StatefulWidget {
   final String currentUsername;
   final String currentEmail;
-  final String? currentProfilePicturePath; // Terima path gambar
+  final String? currentProfilePicturePath; 
   final int? userId;
-  final Function(String, String, String?) onProfileUpdated; // Tambah path gambar ke callback
+  final Function(String, String, String?) onProfileUpdated; 
 
   const EditProfilePage({
     super.key,
     required this.currentUsername,
     required this.currentEmail,
-    this.currentProfilePicturePath, // Tambah ini
+    this.currentProfilePicturePath,
     required this.userId,
     required this.onProfileUpdated,
   });
@@ -345,7 +327,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
   final usernameController = TextEditingController();
   final emailController = TextEditingController();
   final EvergreenDb db = EvergreenDb();
-  File? _imageFile; // Untuk menyimpan gambar yang dipilih
+  File? _imageFile; 
 
   @override
   void initState() {
