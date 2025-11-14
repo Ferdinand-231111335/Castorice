@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:project_kelompok/model/tiket_model.dart';
+import 'package:firebase_analytics/firebase_analytics.dart';
 import '../database/evergreen_db.dart';
 
 class PoinPage extends StatefulWidget {
@@ -11,12 +12,19 @@ class PoinPage extends StatefulWidget {
 
 class _PoinPageState extends State<PoinPage> {
   final EvergreenDb db = EvergreenDb();
+  final FirebaseAnalytics analytics = FirebaseAnalytics.instance;
+
   int totalPoin = 0;
 
   @override
   void initState() {
     super.initState();
     _loadPoin();
+
+    analytics.logEvent(
+      name: "poin_page_opened",
+      parameters: {"page": "PoinPage"},
+    );
   }
 
   Future<void> _loadPoin() async {
@@ -24,17 +32,23 @@ class _PoinPageState extends State<PoinPage> {
     setState(() {
       totalPoin = data;
     });
+
+    analytics.logEvent(
+      name: "poin_loaded",
+      parameters: {"total_poin": data},
+    );
   }
 
   void _redeemPoin(int biaya, String hadiah) async {
     int current = await db.getTotalPoin();
+
     if (current >= biaya) {
       await db.updatePoin(1, current - biaya);
-      
+
       await db.insertTicket(
         Ticket(
           hadiah: hadiah,
-          poin: biaya, 
+          poin: biaya,
           tanggal: DateTime.now().toIso8601String(),
         ),
       );
@@ -42,12 +56,31 @@ class _PoinPageState extends State<PoinPage> {
       setState(() {
         totalPoin -= biaya;
       });
+
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Berhasil menukar $biaya poin untuk $hadiah. Tiket telah dicatat.")),
+        SnackBar(content: Text("Berhasil menukar $biaya poin untuk $hadiah!")),
       );
+
+      analytics.logEvent(
+        name: "redeem_success",
+        parameters: {
+          "hadiah": hadiah,
+          "biaya": biaya,
+        },
+      );
+
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Poin tidak cukup untuk $hadiah")),
+        SnackBar(content: Text("Poin tidak cukup untuk $hadiah.")),
+      );
+
+      analytics.logEvent(
+        name: "redeem_failed",
+        parameters: {
+          "hadiah": hadiah,
+          "biaya": biaya,
+          "current_poin": current,
+        },
       );
     }
   }
@@ -77,6 +110,7 @@ class _PoinPageState extends State<PoinPage> {
                 ),
               ),
               const Divider(),
+
               ListTile(
                 leading: const Icon(Icons.shopping_cart, color: Colors.orange),
                 title: const Text("Voucher Belanja"),
@@ -87,6 +121,7 @@ class _PoinPageState extends State<PoinPage> {
                 ),
               ),
               const Divider(),
+
               ListTile(
                 leading: const Icon(Icons.fastfood, color: Colors.red),
                 title: const Text("Voucher Makanan"),
@@ -97,6 +132,7 @@ class _PoinPageState extends State<PoinPage> {
                 ),
               ),
               const Divider(),
+
               ListTile(
                 leading: const Icon(Icons.park, color: Colors.green),
                 title: const Text("Donasi Tanam Pohon"),

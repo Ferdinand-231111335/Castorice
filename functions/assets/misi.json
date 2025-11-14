@@ -1,0 +1,17 @@
+[
+  {
+    "nama": "Kurangi Plastik",
+    "deskripsi": "Gunakan tas kain saat belanja.",
+    "poin": 10
+  },
+  {
+    "nama": "Hemat Listrik",
+    "deskripsi": "Matikan lampu saat tidak digunakan.",
+    "poin": 15
+  },
+  {
+    "nama": "Tanam Pohon",
+    "deskripsi": "Tanam minimal 1 pohon di sekitar rumah.",
+    "poin": 25
+  }
+]

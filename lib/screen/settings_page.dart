@@ -5,9 +5,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:image_picker/image_picker.dart'; 
 import 'package:path_provider/path_provider.dart'; 
 import 'package:path/path.dart' as p; 
-
 import '../database/evergreen_db.dart';
- import '../model/user_model.dart';
+import '../model/user_model.dart';
 import 'signin.dart';
 import '../main.dart';
 

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_analytics/firebase_analytics.dart';
 import '../database/evergreen_db.dart';
 import '../model/misi_model.dart';
 
@@ -11,12 +12,20 @@ class MisiPage extends StatefulWidget {
 
 class _MisiPageState extends State<MisiPage> {
   final EvergreenDb db = EvergreenDb();
+  final FirebaseAnalytics analytics = FirebaseAnalytics.instance;
+
   List<Misi> misi = [];
 
   @override
   void initState() {
     super.initState();
     _loadMisi();
+
+    // 📌 EVENT: Halaman misi dibuka
+    analytics.logEvent(
+      name: "misi_page_opened",
+      parameters: {"page": "MisiPage"},
+    );
   }
 
   Future<void> _loadMisi() async {
@@ -24,6 +33,14 @@ class _MisiPageState extends State<MisiPage> {
     setState(() {
       misi = data;
     });
+
+    // 📌 EVENT: Data misi berhasil di-load
+    analytics.logEvent(
+      name: "misi_list_loaded",
+      parameters: {
+        "total_misi": data.length,
+      },
+    );
   }
 
   void _selesaikanMisi(Misi misiItem) async {
@@ -31,7 +48,18 @@ class _MisiPageState extends State<MisiPage> {
     await db.updatePoin(1, current + misiItem.poin);
 
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text("Misi '${misiItem.nama}' selesai! +${misiItem.poin} poin")),
+      SnackBar(
+        content: Text("Misi '${misiItem.nama}' selesai! +${misiItem.poin} poin"),
+      ),
+    );
+
+    // 📌 EVENT: Misi diselesaikan
+    analytics.logEvent(
+      name: "misi_completed",
+      parameters: {
+        "nama_misi": misiItem.nama,
+        "poin": misiItem.poin,
+      },
     );
   }
 
@@ -40,19 +68,21 @@ class _MisiPageState extends State<MisiPage> {
     return ListView.builder(
       itemCount: misi.length,
       itemBuilder: (context, index) {
+        final item = misi[index];
+
         return Card(
           margin: const EdgeInsets.all(10),
           elevation: 3,
           child: ListTile(
             leading: const Icon(Icons.eco, color: Colors.green),
             title: Text(
-              misi[index].nama,
+              item.nama,
               style: const TextStyle(fontWeight: FontWeight.bold),
             ),
-            subtitle: Text(misi[index].deskripsi),
+            subtitle: Text(item.deskripsi),
             trailing: ElevatedButton(
-              onPressed: () => _selesaikanMisi(misi[index]),
-              child: Text("+${misi[index].poin}"),
+              onPressed: () => _selesaikanMisi(item),
+              child: Text("+${item.poin}"),
             ),
           ),
         );

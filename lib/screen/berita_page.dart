@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:firebase_analytics/firebase_analytics.dart';
 import '../api/api_service.dart';
 import '../model/berita_model.dart';
 import 'berita_detail.dart';
@@ -15,29 +16,33 @@ class _BeritaPageState extends State<BeritaPage> {
   final ReliefWebApi api = ReliefWebApi();
   late Future<List<Berita>> _beritaFuture;
 
+  final FirebaseAnalytics analytics = FirebaseAnalytics.instance;
+
   @override
   void initState() {
     super.initState();
-    _beritaFuture = _loadReports(); // Panggil fungsi pemuat baru
+    _beritaFuture = _loadReports();
+
+    analytics.logEvent(
+      name: "berita_page_opened",
+      parameters: {"page": "BeritaPage"},
+    );
   }
 
-  // FUNGSI BARU DENGAN LOGIKA FALLBACK
   Future<List<Berita>> _loadReports() async {
     try {
-      // 1. Coba ambil dari API eksternal
       return await api.fetchReports();
     } catch (e) {
-      // 2. Jika gagal (termasuk Error 403), ambil dari data lokal
       print('API Error (Fallback Activated): $e');
       if (mounted) {
-         ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Gagal mengambil data dari ReliefWeb API. Menggunakan data arsip lokal.'),
-              backgroundColor: Colors.orange,
-            ),
-          );
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Gagal mengambil data dari ReliefWeb API. Menggunakan data arsip lokal.'),
+            backgroundColor: Colors.orange,
+          ),
+        );
       }
-      return await api.fetchLocalReports(); // Ambil dari data lokal
+      return await api.fetchLocalReports();
     }
   }
 
@@ -59,7 +64,6 @@ class _BeritaPageState extends State<BeritaPage> {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
           } else if (snapshot.hasError) {
-            // Tampilkan error jika bahkan data lokal gagal dimuat
             return Center(child: Text('Terjadi kesalahan fatal: ${snapshot.error}'));
           } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
             return const Center(child: Text('Tidak ada berita tersedia.'));
@@ -69,8 +73,13 @@ class _BeritaPageState extends State<BeritaPage> {
           return RefreshIndicator(
             onRefresh: () async {
               setState(() {
-                _beritaFuture = _loadReports(); // Refresh memanggil ulang logika fallback
+                _beritaFuture = _loadReports();
               });
+
+              await analytics.logEvent(
+                name: "berita_refresh",
+                parameters: {"method": "pull_to_refresh"},
+              );
             },
             child: ListView.builder(
               itemCount: berita.length,
@@ -79,9 +88,20 @@ class _BeritaPageState extends State<BeritaPage> {
                 return Card(
                   margin: const EdgeInsets.all(10),
                   child: ListTile(
-                    title: Text(item.judul, style: const TextStyle(fontWeight: FontWeight.bold)),
+                    title: Text(
+                      item.judul,
+                      style: const TextStyle(fontWeight: FontWeight.bold),
+                    ),
                     subtitle: Text('${item.sumber} • ${formatTanggal(item.tanggal)}'),
-                    onTap: () {
+                    onTap: () async {
+                      await analytics.logEvent(
+                        name: "berita_clicked",
+                        parameters: {
+                          "judul": item.judul,
+                          "sumber": item.sumber,
+                        },
+                      );
+
                       Navigator.push(
                         context,
                         MaterialPageRoute(
