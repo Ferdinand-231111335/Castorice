@@ -2,15 +2,17 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 import '../database/evergreen_db.dart';
+import '../model/user_model.dart' as local;
 import 'home.dart';
 import 'signup.dart';
 import '../main.dart';
 
 class SignIn extends StatefulWidget {
   final ThemeChangeCallback toggleTheme;
-  const SignIn({super.key, required this.toggleTheme}); 
+  const SignIn({super.key, required this.toggleTheme});
 
   @override
   State<SignIn> createState() => _SignInState();
@@ -18,9 +20,11 @@ class SignIn extends StatefulWidget {
 
 class _SignInState extends State<SignIn> {
   final EvergreenDb db = EvergreenDb();
+  final FirebaseAuth _auth = FirebaseAuth.instance;
+  final FirebaseAnalytics analytics = FirebaseAnalytics.instance;
+
   final emailController = TextEditingController();
   final passwordController = TextEditingController();
-  final FirebaseAnalytics analytics = FirebaseAnalytics.instance;
 
   String handleFirebaseAuthException(FirebaseAuthException e) {
     switch (e.code) {
@@ -32,10 +36,6 @@ class _SignInState extends State<SignIn> {
         return "Pengguna tidak ditemukan.";
       case "wrong-password":
         return "Password salah.";
-      case "email-already-in-use":
-        return "Email sudah digunakan.";
-      case "weak-password":
-        return "Password terlalu lemah.";
       default:
         return "Terjadi kesalahan: ${e.message}";
     }
@@ -44,7 +44,6 @@ class _SignInState extends State<SignIn> {
   @override
   void initState() {
     super.initState();
-
     analytics.logEvent(
       name: "sign_in_page_opened",
       parameters: {"page": "SignIn"},
@@ -52,71 +51,86 @@ class _SignInState extends State<SignIn> {
   }
 
   Future<void> _login() async {
+    final email = emailController.text.trim();
+    final password = passwordController.text.trim();
+
     analytics.logEvent(
       name: "sign_in_attempt",
-      parameters: {
-        "email_length": emailController.text.trim().length,
-      },
+      parameters: {"email_length": email.length},
     );
 
     try {
-      final user = await db.getUserByEmail(
-        emailController.text.trim(),
-        passwordController.text.trim(),
+      // 1️⃣ Firebase Auth login
+      final UserCredential credential =
+          await _auth.signInWithEmailAndPassword(
+        email: email,
+        password: password,
       );
 
-      if (user != null) {
-        final prefs = await SharedPreferences.getInstance();
+      final String uid = credential.user!.uid;
 
-        await prefs.setBool('isLoggedIn', true);
-        await prefs.setInt('userId', user.id!);
-        await prefs.setString('username', user.username);
-        await prefs.setString('email', user.email);
+      // 2️⃣ Ambil data user dari Firestore
+      final doc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(uid)
+          .get();
 
-        if (user.profilePicture != null) {
-          await prefs.setString('profilePicture', user.profilePicture!);
-        } else {
-          await prefs.remove('profilePicture');
-        }
-
-        analytics.logEvent(
-          name: "sign_in_success",
-          parameters: {
-            "user_id": user.id.toString(),
-            "email": user.email,
-          },
-        );
-
-        if (mounted) {
-          Navigator.pushAndRemoveUntil(
-            context,
-            MaterialPageRoute(builder: (_) => Home(toggleTheme: widget.toggleTheme)),
-            (route) => false,
-          );
-        }
-      } else {
-        analytics.logEvent(
-          name: "sign_in_failed",
-          parameters: {"email": emailController.text.trim()},
-        );
-
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Email atau password salah")),
-        );
+      if (!doc.exists) {
+        throw Exception("Data user tidak ditemukan di Firestore");
       }
 
+      final data = doc.data()!;
+
+      // 3️⃣ Simpan ke SQLite (cache lokal)
+      final localUser = local.User(
+        username: data['username'],
+        email: data['email'],
+        password: '', // ❌ JANGAN simpan password
+      );
+
+      await db.insertOrReplaceUser(localUser);
+
+      // 4️⃣ Simpan session
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool('isLoggedIn', true);
+      await prefs.setString('uid', uid);
+      await prefs.setString('username', data['username']);
+      await prefs.setString('email', data['email']);
+
+      // 5️⃣ Analytics sukses
+      analytics.logEvent(
+        name: "sign_in_success",
+        parameters: {
+          "uid": uid,
+          "email": data['email'],
+        },
+      );
+
+      if (mounted) {
+        Navigator.pushAndRemoveUntil(
+          context,
+          MaterialPageRoute(
+            builder: (_) => Home(toggleTheme: widget.toggleTheme),
+          ),
+          (route) => false,
+        );
+      }
     } on FirebaseAuthException catch (e) {
       final msg = handleFirebaseAuthException(e);
+
+      analytics.logEvent(
+        name: "sign_in_failed",
+        parameters: {"error": e.code},
+      );
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(msg)),
       );
-
-      analytics.logEvent(
-        name: "sign_in_firebase_error",
-        parameters: {"error": e.code},
-      );
     } catch (e) {
+      analytics.logEvent(
+        name: "sign_in_failed_unknown",
+        parameters: {"error": e.toString()},
+      );
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text("Error: $e")),
@@ -147,7 +161,8 @@ class _SignInState extends State<SignIn> {
             const SizedBox(height: 20),
             ElevatedButton(
               onPressed: _login,
-              style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
+              style:
+                  ElevatedButton.styleFrom(backgroundColor: Colors.green),
               child: const Text("Sign In"),
             ),
             TextButton(

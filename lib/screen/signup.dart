@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+
 import '../database/evergreen_db.dart';
 import '../model/user_model.dart' as local;
 
@@ -13,15 +15,16 @@ class SignUp extends StatefulWidget {
 
 class _SignUpState extends State<SignUp> {
   final _formKey = GlobalKey<FormState>();
+
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseAnalytics analytics = FirebaseAnalytics.instance;
+  final FirebaseFirestore firestore = FirebaseFirestore.instance;
   final EvergreenDb db = EvergreenDb();
 
   final usernameController = TextEditingController();
   final emailController = TextEditingController();
   final passwordController = TextEditingController();
 
-  // HANDLE ERROR FIREBASE
   String firebaseErrorMsg(FirebaseAuthException e) {
     switch (e.code) {
       case "invalid-email":
@@ -45,28 +48,46 @@ class _SignUpState extends State<SignUp> {
     final password = passwordController.text.trim();
 
     try {
-      UserCredential credential = await _auth.createUserWithEmailAndPassword(
+      UserCredential credential =
+          await _auth.createUserWithEmailAndPassword(
         email: email,
         password: password,
       );
 
+      final uid = credential.user!.uid;
+
       await credential.user!.updateDisplayName(username);
 
+      await firestore.collection("users").doc(uid).set({
+        "uid": uid,
+        "username": username,
+        "email": email,
+        "createdAt": FieldValue.serverTimestamp(),
+      });
+
       await db.insertUser(
-        local.User(username: username, email: email, password: password),
+        local.User(
+          username: username,
+          email: email,
+          password: "", 
+        ),
       );
 
       await analytics.logEvent(
         name: "sign_up_success",
         parameters: {
+          "user_id": uid,
           "email": email,
-          "username": username,
-          "user_id": credential.user!.uid,
         },
       );
 
+      debugPrint("Firebase UID: $uid");
+
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Registrasi berhasil!")),
+        SnackBar(
+          content: Text("Registrasi berhasil!\nUID: $uid"),
+          duration: const Duration(seconds: 4),
+        ),
       );
 
       Navigator.pop(context);
@@ -76,10 +97,7 @@ class _SignUpState extends State<SignUp> {
 
       await analytics.logEvent(
         name: "sign_up_failed",
-        parameters: {
-          "error": e.code,
-          "email": email,
-        },
+        parameters: {"error": e.code},
       );
 
       ScaffoldMessenger.of(context).showSnackBar(
@@ -101,7 +119,10 @@ class _SignUpState extends State<SignUp> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("Sign Up"), backgroundColor: Colors.green),
+      appBar: AppBar(
+        title: const Text("Sign Up"),
+        backgroundColor: Colors.green,
+      ),
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: Form(
@@ -129,16 +150,20 @@ class _SignUpState extends State<SignUp> {
                 decoration: const InputDecoration(labelText: "Password"),
                 validator: (value) {
                   if (value!.isEmpty) return "Masukkan password";
-                  if (value.length < 6) return "Password minimal 6 karakter";
+                  if (value.length < 6) {
+                    return "Password minimal 6 karakter";
+                  }
                   return null;
                 },
               ),
               const SizedBox(height: 20),
               ElevatedButton(
                 onPressed: _register,
-                style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.green,
+                ),
                 child: const Text("Sign Up"),
-              )
+              ),
             ],
           ),
         ),

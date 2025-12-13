@@ -198,4 +198,13 @@ class EvergreenDb {
     }
     return null;
   }
+
+  Future<void> insertOrReplaceUser(User user) async {
+  final db = await database;
+
+  await db.delete("user");
+
+  await db.insert("user", user.toMap());
+}
+
 }

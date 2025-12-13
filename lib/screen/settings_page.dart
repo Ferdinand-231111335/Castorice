@@ -8,6 +8,8 @@ import 'package:path/path.dart' as p;
 import '../database/evergreen_db.dart';
 import 'signin.dart';
 import '../main.dart';
+import 'package:firebase_auth/firebase_auth.dart' as fb;
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class SettingsPage extends StatefulWidget {
   final ThemeChangeCallback toggleTheme;
@@ -400,80 +402,74 @@ class _EditProfilePageState extends State<EditProfilePage> {
   }
 
   Future<void> _updateProfile() async {
-    if (!_formKey.currentState!.validate()) {
-      return;
-    }
-    
-    final newUsername = usernameController.text.trim();
-    final newEmail = emailController.text.trim();
-    String? newProfilePicturePath = widget.currentProfilePicturePath;
+  if (!_formKey.currentState!.validate()) return;
 
-    if (widget.userId == null) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Error: User ID tidak ditemukan.")),
-        );
-      }
-      return;
-    }
-    
-    final oldUser = await db.getUserById(widget.userId!);
-    
-    if (oldUser == null) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Error: Data user tidak valid.")),
-        );
-      }
-      return;
-    }
+  final fb.User? user = fb.FirebaseAuth.instance.currentUser;
 
-    if (_imageFile != null) {
-      newProfilePicturePath = await _saveImageLocally(_imageFile!);
-      if (newProfilePicturePath == null) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text("Gagal menyimpan gambar profil.")),
-          );
-        }
-        return;
-      }
-    }
-
-    final updatedUser = oldUser.copyWith(
-      username: newUsername,
-      email: newEmail,
-      profilePicture: newProfilePicturePath, 
+  if (user == null) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text("User belum login")),
     );
-
-    final rowsAffected = await db.updateUser(updatedUser);
-
-    if (rowsAffected > 0) {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setString('username', newUsername);
-      await prefs.setString('email', newEmail);
-      if (newProfilePicturePath != null) {
-        await prefs.setString('profilePicture', newProfilePicturePath);
-      } else {
-        await prefs.remove('profilePicture');
-      }
-      
-      widget.onProfileUpdated(newUsername, newEmail, newProfilePicturePath);
-
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Profil berhasil diperbarui!")),
-        );
-        Navigator.pop(context);
-      }
-    } else {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Gagal memperbarui profil di database.")),
-        );
-      }
-    }
+    return;
   }
+
+  final uid = user.uid;
+  final newUsername = usernameController.text.trim();
+  final newEmail = emailController.text.trim();
+
+  String? photoPath = widget.currentProfilePicturePath;
+
+  if (_imageFile != null) {
+    photoPath = await _saveImageLocally(_imageFile!);
+  }
+
+  try {
+    /// 🔹 Update Firestore
+    await FirebaseFirestore.instance
+        .collection('users')
+        .doc(uid)
+        .update({
+      'username': newUsername,
+      'email': newEmail,
+      'photoUrl': photoPath,
+      'updatedAt': FieldValue.serverTimestamp(),
+    });
+
+    /// 🔹 Update Firebase Auth
+    await user.updateDisplayName(newUsername);
+
+    if (newEmail != user.email) {
+      await user.updateEmail(newEmail);
+    }
+
+    /// 🔹 Update SharedPreferences
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('username', newUsername);
+    await prefs.setString('email', newEmail);
+    if (photoPath != null) {
+      await prefs.setString('profilePicture', photoPath);
+    }
+
+    widget.onProfileUpdated(newUsername, newEmail, photoPath);
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Profil berhasil diperbarui")),
+      );
+      Navigator.pop(context);
+    }
+  } on fb.FirebaseAuthException catch (e) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text("Auth error: ${e.message}")),
+    );
+  } catch (e) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text("Error: $e")),
+    );
+  }
+}
+
+
 
   @override
   Widget build(BuildContext context) {
