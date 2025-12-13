@@ -30,7 +30,6 @@ class _MisiPageState extends State<MisiPage> {
     );
   }
 
-  /// 🔹 Load misi (masih lokal / static)
   void _loadMisi() {
     setState(() {
       misi = [
@@ -46,7 +45,6 @@ class _MisiPageState extends State<MisiPage> {
     );
   }
 
-  /// 🔥 Selesaikan misi → UPDATE FIRESTORE
   Future<void> _selesaikanMisi(Misi misiItem) async {
     final user = auth.currentUser;
     if (user == null) return;
