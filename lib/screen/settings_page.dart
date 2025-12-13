@@ -8,7 +8,7 @@ import 'package:path/path.dart' as p;
 import '../database/evergreen_db.dart';
 import 'signin.dart';
 import '../main.dart';
-import 'package:firebase_auth/firebase_auth.dart' as fb;
+import 'package:firebase_auth/firebase_auth.dart' as auth;
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 class SettingsPage extends StatefulWidget {
@@ -404,7 +404,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
   Future<void> _updateProfile() async {
   if (!_formKey.currentState!.validate()) return;
 
-  final fb.User? user = fb.FirebaseAuth.instance.currentUser;
+  final auth.User? user = auth.FirebaseAuth.instance.currentUser;
 
   if (user == null) {
     ScaffoldMessenger.of(context).showSnackBar(
@@ -424,7 +424,6 @@ class _EditProfilePageState extends State<EditProfilePage> {
   }
 
   try {
-    /// 🔹 Update Firestore
     await FirebaseFirestore.instance
         .collection('users')
         .doc(uid)
@@ -435,14 +434,12 @@ class _EditProfilePageState extends State<EditProfilePage> {
       'updatedAt': FieldValue.serverTimestamp(),
     });
 
-    /// 🔹 Update Firebase Auth
     await user.updateDisplayName(newUsername);
 
     if (newEmail != user.email) {
-      await user.updateEmail(newEmail);
+      await user.verifyBeforeUpdateEmail(newEmail);
     }
 
-    /// 🔹 Update SharedPreferences
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('username', newUsername);
     await prefs.setString('email', newEmail);
@@ -458,7 +455,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
       );
       Navigator.pop(context);
     }
-  } on fb.FirebaseAuthException catch (e) {
+  } on auth.FirebaseAuthException catch (e) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text("Auth error: ${e.message}")),
     );
@@ -468,8 +465,6 @@ class _EditProfilePageState extends State<EditProfilePage> {
     );
   }
 }
-
-
 
   @override
   Widget build(BuildContext context) {

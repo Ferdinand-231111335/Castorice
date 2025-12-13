@@ -60,7 +60,6 @@ class _SignInState extends State<SignIn> {
     );
 
     try {
-      // 1️⃣ Firebase Auth login
       final UserCredential credential =
           await _auth.signInWithEmailAndPassword(
         email: email,
@@ -69,7 +68,6 @@ class _SignInState extends State<SignIn> {
 
       final String uid = credential.user!.uid;
 
-      // 2️⃣ Ambil data user dari Firestore
       final doc = await FirebaseFirestore.instance
           .collection('users')
           .doc(uid)
@@ -81,23 +79,20 @@ class _SignInState extends State<SignIn> {
 
       final data = doc.data()!;
 
-      // 3️⃣ Simpan ke SQLite (cache lokal)
       final localUser = local.User(
         username: data['username'],
         email: data['email'],
-        password: '', // ❌ JANGAN simpan password
+        password: '',
       );
 
       await db.insertOrReplaceUser(localUser);
 
-      // 4️⃣ Simpan session
       final prefs = await SharedPreferences.getInstance();
       await prefs.setBool('isLoggedIn', true);
       await prefs.setString('uid', uid);
       await prefs.setString('username', data['username']);
       await prefs.setString('email', data['email']);
 
-      // 5️⃣ Analytics sukses
       analytics.logEvent(
         name: "sign_in_success",
         parameters: {
