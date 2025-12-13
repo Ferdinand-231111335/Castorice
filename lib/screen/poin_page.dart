@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:project_kelompok/model/tiket_model.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
+import 'package:awesome_notifications/awesome_notifications.dart';
+import 'package:shared_preferences/shared_preferences.dart'; // Ditambahkan
 import '../database/evergreen_db.dart';
 
 class PoinPage extends StatefulWidget {
@@ -39,6 +41,25 @@ class _PoinPageState extends State<PoinPage> {
     );
   }
 
+  // FUNGSI NOTIFIKASI PANEL HP (SUDAH KONDISIONAL)
+  void _showRedeemNotification(String hadiah, int biaya) async {
+    final prefs = await SharedPreferences.getInstance();
+    final bool isEnabled = prefs.getBool('isNotificationEnabled') ?? true; 
+
+    if (isEnabled) {
+      await AwesomeNotifications().createNotification(
+        content: NotificationContent(
+          id: DateTime.now().millisecondsSinceEpoch.remainder(100000), 
+          channelKey: 'basic_channel',
+          title: '🎉 Penukaran Poin Berhasil!',
+          body: 'Anda berhasil menukar $biaya poin untuk $hadiah. Cek detailnya sekarang!',
+          notificationLayout: NotificationLayout.Default,
+          payload: {'hadiah': hadiah},
+        ),
+      );
+    }
+  }
+
   void _redeemPoin(int biaya, String hadiah) async {
     int current = await db.getTotalPoin();
 
@@ -57,9 +78,18 @@ class _PoinPageState extends State<PoinPage> {
         totalPoin -= biaya;
       });
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Berhasil menukar $biaya poin untuk $hadiah!")),
-      );
+      // Panggil notifikasi panel HP (kondisional di dalam fungsinya)
+      _showRedeemNotification(hadiah, biaya);
+      
+      // MODIFIKASI: Cek status notifikasi lagi untuk Snackbar
+      final prefs = await SharedPreferences.getInstance();
+      final bool isEnabled = prefs.getBool('isNotificationEnabled') ?? true;
+      
+      if (isEnabled) { // HANYA TAMPILKAN SNACKBAR JIKA NOTIFIKASI DIENABLED
+          ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text("Berhasil menukar $biaya poin untuk $hadiah!")),
+          );
+      }
 
       analytics.logEvent(
         name: "redeem_success",
@@ -70,6 +100,7 @@ class _PoinPageState extends State<PoinPage> {
       );
 
     } else {
+      // Notifikasi kegagalan tetap ditampilkan (ini adalah feedback penting)
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text("Poin tidak cukup untuk $hadiah.")),
       );
@@ -100,16 +131,6 @@ class _PoinPageState extends State<PoinPage> {
         Expanded(
           child: ListView(
             children: [
-              ListTile(
-                leading: const Icon(Icons.card_giftcard, color: Colors.blue),
-                title: const Text("Merchandise Evergreen"),
-                subtitle: const Text("Tukar dengan 80 poin"),
-                trailing: ElevatedButton(
-                  onPressed: () => _redeemPoin(80, "Merchandise Evergreen"),
-                  child: const Text("Tukar"),
-                ),
-              ),
-              const Divider(),
 
               ListTile(
                 leading: const Icon(Icons.shopping_cart, color: Colors.orange),
@@ -117,6 +138,17 @@ class _PoinPageState extends State<PoinPage> {
                 subtitle: const Text("Tukar dengan 50 poin"),
                 trailing: ElevatedButton(
                   onPressed: () => _redeemPoin(50, "Voucher Belanja"),
+                  child: const Text("Tukar"),
+                ),
+              ),
+              const Divider(),
+              
+              ListTile(
+                leading: const Icon(Icons.card_giftcard, color: Colors.blue),
+                title: const Text("Merchandise Evergreen"),
+                subtitle: const Text("Tukar dengan 80 poin"),
+                trailing: ElevatedButton(
+                  onPressed: () => _redeemPoin(80, "Merchandise Evergreen"),
                   child: const Text("Tukar"),
                 ),
               ),

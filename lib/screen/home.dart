@@ -1,5 +1,20 @@
 import 'package:flutter/material.dart';
-import '../main.dart';
+import 'package:project_kelompok/screen/about.dart';
+import 'package:project_kelompok/screen/signin.dart';
+import 'package:project_kelompok/screen/tiket_page.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:intl/intl.dart'; 
+
+import '../main.dart'; 
+import '../database/evergreen_db.dart';
+import '../model/misi_model.dart';
+import '../model/poin_model.dart';
+import '../model/user_model.dart';
+
+import 'berita_page.dart';
+import 'misi_dart.dart';
+import 'poin_page.dart';
+import 'settings_page.dart'; 
 
 class Home extends StatefulWidget {
   final ThemeChangeCallback toggleTheme;
