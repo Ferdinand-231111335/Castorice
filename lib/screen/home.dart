@@ -5,7 +5,7 @@ import 'package:flutter/services.dart' show rootBundle;
 import 'package:flutter/material.dart';
 import 'package:project_kelompok/screen/about.dart';
 import 'package:project_kelompok/screen/signin.dart';
-import 'package:project_kelompok/screen/tiket_page.dart';
+import 'package:project_kelompok/screen/ticket_page.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:intl/intl.dart'; 
 
@@ -39,7 +39,7 @@ class _HomeState extends State<Home> {
 
   final List<Widget> _pages = const [
     BeritaPage(), 
-    MisiPage(listMisi: [],),   
+    MisiPage(),   
     PoinPage(),   
   ];
 
@@ -225,7 +225,7 @@ class _HomeState extends State<Home> {
                 Navigator.pop(context);
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (_) => const TicketPage()),
+                  MaterialPageRoute(builder: (_) => TicketPage()),
                 );
               },
             ),

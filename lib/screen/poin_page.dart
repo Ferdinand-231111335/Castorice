@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:project_kelompok/model/tiket_model.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
-import 'package:awesome_notifications/awesome_notifications.dart';
-import 'package:shared_preferences/shared_preferences.dart'; // Ditambahkan
-import '../database/evergreen_db.dart';
 
 class PoinPage extends StatefulWidget {
   const PoinPage({super.key});
@@ -13,107 +11,69 @@ class PoinPage extends StatefulWidget {
 }
 
 class _PoinPageState extends State<PoinPage> {
-  final EvergreenDb db = EvergreenDb();
+  final FirebaseAuth _auth = FirebaseAuth.instance;
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseAnalytics analytics = FirebaseAnalytics.instance;
 
   int totalPoin = 0;
+  String get uid => _auth.currentUser!.uid;
 
   @override
   void initState() {
     super.initState();
     _loadPoin();
-
-    analytics.logEvent(
-      name: "poin_page_opened",
-      parameters: {"page": "PoinPage"},
-    );
   }
 
   Future<void> _loadPoin() async {
-    final data = await db.getTotalPoin();
-    setState(() {
-      totalPoin = data;
+    final doc =
+        await _firestore.collection('users').doc(uid).get();
+
+    if (doc.exists) {
+      setState(() {
+        totalPoin = doc['poin'] ?? 0;
+      });
+    }
+  }
+
+  Future<void> _redeemPoin(int biaya, String hadiah) async {
+    if (totalPoin < biaya) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Poin tidak cukup untuk $hadiah")),
+      );
+      return;
+    }
+
+    final userRef = _firestore.collection('users').doc(uid);
+    final ticketRef = userRef.collection('tickets').doc();
+
+    await _firestore.runTransaction((transaction) async {
+      final snapshot = await transaction.get(userRef);
+      final currentPoin = snapshot['poin'];
+
+      transaction.update(userRef, {
+        'poin': currentPoin - biaya,
+      });
+
+      transaction.set(ticketRef, {
+        'hadiah': hadiah,
+        'poin': biaya,
+        'tanggal': FieldValue.serverTimestamp(),
+      });
     });
 
     analytics.logEvent(
-      name: "poin_loaded",
-      parameters: {"total_poin": data},
+      name: "redeem_success",
+      parameters: {
+        "hadiah": hadiah,
+        "biaya": biaya,
+      },
     );
-  }
 
-  // FUNGSI NOTIFIKASI PANEL HP (SUDAH KONDISIONAL)
-  void _showRedeemNotification(String hadiah, int biaya) async {
-    final prefs = await SharedPreferences.getInstance();
-    final bool isEnabled = prefs.getBool('isNotificationEnabled') ?? true; 
+    await _loadPoin();
 
-    if (isEnabled) {
-      await AwesomeNotifications().createNotification(
-        content: NotificationContent(
-          id: DateTime.now().millisecondsSinceEpoch.remainder(100000), 
-          channelKey: 'basic_channel',
-          title: '🎉 Penukaran Poin Berhasil!',
-          body: 'Anda berhasil menukar $biaya poin untuk $hadiah. Cek detailnya sekarang!',
-          notificationLayout: NotificationLayout.Default,
-          payload: {'hadiah': hadiah},
-        ),
-      );
-    }
-  }
-
-  void _redeemPoin(int biaya, String hadiah) async {
-    int current = await db.getTotalPoin();
-
-    if (current >= biaya) {
-      await db.updatePoin(1, current - biaya);
-
-      await db.insertTicket(
-        Ticket(
-          hadiah: hadiah,
-          poin: biaya,
-          tanggal: DateTime.now().toIso8601String(),
-        ),
-      );
-
-      setState(() {
-        totalPoin -= biaya;
-      });
-
-      // Panggil notifikasi panel HP (kondisional di dalam fungsinya)
-      _showRedeemNotification(hadiah, biaya);
-      
-      // MODIFIKASI: Cek status notifikasi lagi untuk Snackbar
-      final prefs = await SharedPreferences.getInstance();
-      final bool isEnabled = prefs.getBool('isNotificationEnabled') ?? true;
-      
-      if (isEnabled) { // HANYA TAMPILKAN SNACKBAR JIKA NOTIFIKASI DIENABLED
-          ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text("Berhasil menukar $biaya poin untuk $hadiah!")),
-          );
-      }
-
-      analytics.logEvent(
-        name: "redeem_success",
-        parameters: {
-          "hadiah": hadiah,
-          "biaya": biaya,
-        },
-      );
-
-    } else {
-      // Notifikasi kegagalan tetap ditampilkan (ini adalah feedback penting)
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Poin tidak cukup untuk $hadiah.")),
-      );
-
-      analytics.logEvent(
-        name: "redeem_failed",
-        parameters: {
-          "hadiah": hadiah,
-          "biaya": biaya,
-          "current_poin": current,
-        },
-      );
-    }
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text("Berhasil menukar $biaya poin untuk $hadiah")),
+    );
   }
 
   @override
@@ -125,59 +85,30 @@ class _PoinPageState extends State<PoinPage> {
           "Total Poin Kamu: $totalPoin",
           style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
         ),
-        const SizedBox(height: 10),
-        const Divider(thickness: 2, color: Colors.grey),
-
+        const Divider(thickness: 2),
         Expanded(
           child: ListView(
             children: [
-
-              ListTile(
-                leading: const Icon(Icons.shopping_cart, color: Colors.orange),
-                title: const Text("Voucher Belanja"),
-                subtitle: const Text("Tukar dengan 50 poin"),
-                trailing: ElevatedButton(
-                  onPressed: () => _redeemPoin(50, "Voucher Belanja"),
-                  child: const Text("Tukar"),
-                ),
-              ),
-              const Divider(),
-              
-              ListTile(
-                leading: const Icon(Icons.card_giftcard, color: Colors.blue),
-                title: const Text("Merchandise Evergreen"),
-                subtitle: const Text("Tukar dengan 80 poin"),
-                trailing: ElevatedButton(
-                  onPressed: () => _redeemPoin(80, "Merchandise Evergreen"),
-                  child: const Text("Tukar"),
-                ),
-              ),
-              const Divider(),
-
-              ListTile(
-                leading: const Icon(Icons.fastfood, color: Colors.red),
-                title: const Text("Voucher Makanan"),
-                subtitle: const Text("Tukar dengan 100 poin"),
-                trailing: ElevatedButton(
-                  onPressed: () => _redeemPoin(100, "Voucher Makanan"),
-                  child: const Text("Tukar"),
-                ),
-              ),
-              const Divider(),
-
-              ListTile(
-                leading: const Icon(Icons.park, color: Colors.green),
-                title: const Text("Donasi Tanam Pohon"),
-                subtitle: const Text("Tukar dengan 200 poin"),
-                trailing: ElevatedButton(
-                  onPressed: () => _redeemPoin(200, "Donasi Tanam Pohon"),
-                  child: const Text("Tukar"),
-                ),
-              ),
+              _buildItem("Voucher Belanja", 50, Icons.shopping_cart),
+              _buildItem("Merchandise Evergreen", 80, Icons.card_giftcard),
+              _buildItem("Voucher Makanan", 100, Icons.fastfood),
+              _buildItem("Donasi Tanam Pohon", 200, Icons.park),
             ],
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildItem(String hadiah, int biaya, IconData icon) {
+    return ListTile(
+      leading: Icon(icon, color: Colors.green),
+      title: Text(hadiah),
+      subtitle: Text("Tukar dengan $biaya poin"),
+      trailing: ElevatedButton(
+        onPressed: () => _redeemPoin(biaya, hadiah),
+        child: const Text("Tukar"),
+      ),
     );
   }
 }

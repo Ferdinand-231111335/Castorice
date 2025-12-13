@@ -1,6 +1,6 @@
 import 'dart:io'; 
 import 'package:flutter/material.dart';
-import 'package:project_kelompok/screen/tiket_page.dart';
+import 'package:project_kelompok/screen/ticket_page.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:image_picker/image_picker.dart'; 
 import 'package:path_provider/path_provider.dart'; 
@@ -249,7 +249,7 @@ class _SettingsPageState extends State<SettingsPage> {
               subtitle: const Text("Lihat hasil tukar poin Anda"),
               onTap: () {
                 Navigator.of(context).push(
-                  MaterialPageRoute(builder: (_) => const TicketPage()),
+                  MaterialPageRoute(builder: (_) => TicketPage()),
                 );
               },
             ),
