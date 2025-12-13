@@ -15,7 +15,7 @@ class _SignUpState extends State<SignUp> {
   final _formKey = GlobalKey<FormState>();
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseAnalytics analytics = FirebaseAnalytics.instance;
-  final EvergreenDb db = EvergreenDb(); // OPSIONAL
+  final EvergreenDb db = EvergreenDb();
 
   final usernameController = TextEditingController();
   final emailController = TextEditingController();

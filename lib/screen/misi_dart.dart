@@ -21,7 +21,6 @@ class _MisiPageState extends State<MisiPage> {
     super.initState();
     _loadMisi();
 
-    // 📌 EVENT: Halaman misi dibuka
     analytics.logEvent(
       name: "misi_page_opened",
       parameters: {"page": "MisiPage"},
@@ -34,7 +33,6 @@ class _MisiPageState extends State<MisiPage> {
       misi = data;
     });
 
-    // 📌 EVENT: Data misi berhasil di-load
     analytics.logEvent(
       name: "misi_list_loaded",
       parameters: {
@@ -53,7 +51,6 @@ class _MisiPageState extends State<MisiPage> {
       ),
     );
 
-    // 📌 EVENT: Misi diselesaikan
     analytics.logEvent(
       name: "misi_completed",
       parameters: {
