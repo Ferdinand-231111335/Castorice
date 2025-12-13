@@ -3,6 +3,7 @@ import 'screen/signin.dart';
 import './database/evergreen_db.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
+import 'package:awesome_notifications/awesome_notifications.dart';
 
 typedef ThemeChangeCallback = void Function(bool isDarkMode);
 
@@ -13,7 +14,27 @@ void main() async {
   await Firebase.initializeApp();
   await FirebaseAnalytics.instance.setAnalyticsCollectionEnabled(true);
 
-  // await EvergreenDb().resetDatabase();
+  AwesomeNotifications().initialize(
+    null,
+    [
+      NotificationChannel(
+        channelKey: 'basic_channel',
+        channelName: 'Basic notifications',
+        channelDescription: 'Notification channel for point redemption',
+        defaultColor: Colors.green,
+        ledColor: Colors.white,
+        importance: NotificationImportance.High,
+        channelShowBadge: true,
+      )
+    ],
+    debug: true,
+  );
+
+  AwesomeNotifications().isNotificationAllowed().then((isAllowed) {
+    if (!isAllowed) {
+      AwesomeNotifications().requestPermissionToSendNotifications();
+    }
+  });
   runApp(const MyApp());
 }
 

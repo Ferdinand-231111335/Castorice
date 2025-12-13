@@ -13,7 +13,6 @@ import '../main.dart';
 import '../database/evergreen_db.dart';
 import '../model/misi_model.dart';
 import '../model/poin_model.dart';
-import '../model/user_model.dart';
 
 import 'berita_page.dart';
 import 'misi_dart.dart';
