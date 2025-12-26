@@ -4,20 +4,20 @@ import 'dart:async';
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:flutter/material.dart';
 import 'package:project_kelompok/screen/about.dart';
+import 'package:project_kelompok/screen/misi_page.dart';
 import 'package:project_kelompok/screen/signin.dart';
 import 'package:project_kelompok/screen/ticket_page.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:intl/intl.dart'; 
+import 'package:intl/intl.dart';
 
-import '../main.dart'; 
+import '../main.dart';
 import '../database/evergreen_db.dart';
 import '../model/misi_model.dart';
 import '../model/poin_model.dart';
 
 import 'berita_page.dart';
-import 'misi_dart.dart';
 import 'poin_page.dart';
-import 'settings_page.dart'; 
+import 'settings_page.dart';
 
 class Home extends StatefulWidget {
   final ThemeChangeCallback toggleTheme;
@@ -33,15 +33,11 @@ class _HomeState extends State<Home> {
   String? username;
   String? profilePicturePath;
   int? totalPoin;
-  
+
   late Timer _timer;
   String _currentTimeWIB = '';
 
-  final List<Widget> _pages = const [
-    BeritaPage(), 
-    MisiPage(),   
-    PoinPage(),   
-  ];
+  final List<Widget> _pages = const [BeritaPage(), MisiPage(), PoinPage()];
 
   @override
   void initState() {
@@ -58,7 +54,7 @@ class _HomeState extends State<Home> {
   }
 
   void _startTimer() {
-    _updateTime(); 
+    _updateTime();
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
       _updateTime();
     });
@@ -66,8 +62,8 @@ class _HomeState extends State<Home> {
 
   void _updateTime() {
     final now = DateTime.now();
-    final formatter = DateFormat('HH:mm:ss'); 
-    
+    final formatter = DateFormat('HH:mm:ss');
+
     if (mounted) {
       setState(() {
         _currentTimeWIB = formatter.format(now);
@@ -75,11 +71,10 @@ class _HomeState extends State<Home> {
     }
   }
 
-
   Future<void> _loadUserData() async {
     final prefs = await SharedPreferences.getInstance();
-    
-    final int poin = await db.getTotalPoin(); 
+
+    final int poin = await db.getTotalPoin();
 
     if (mounted) {
       setState(() {
@@ -121,11 +116,16 @@ class _HomeState extends State<Home> {
   Future<void> _logout(BuildContext context) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.clear();
-    
+
     if (mounted) {
       Navigator.pushAndRemoveUntil(
         context,
-        MaterialPageRoute(builder: (_) => SignIn(toggleTheme: widget.toggleTheme)),
+        MaterialPageRoute(
+          builder: (_) => SignIn(
+            toggleTheme: widget.toggleTheme,
+            changeLocale: (Locale locale) {},
+          ),
+        ),
         (route) => false,
       );
     }
@@ -138,7 +138,7 @@ class _HomeState extends State<Home> {
         backgroundImage: FileImage(File(profilePicturePath!)),
       );
     }
-    
+
     final bool isDark = Theme.of(context).brightness == Brightness.dark;
     return CircleAvatar(
       backgroundColor: isDark ? Colors.grey[700] : Colors.white,
@@ -172,7 +172,7 @@ class _HomeState extends State<Home> {
                 style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w600,
-                  color: isDark ? Colors.white : Colors.black, 
+                  color: isDark ? Colors.white : Colors.black,
                 ),
               ),
             ),
@@ -196,12 +196,12 @@ class _HomeState extends State<Home> {
                 'Total Poin: $poinText',
                 style: TextStyle(
                   fontWeight: FontWeight.w600,
-                  color: isDark ? Colors.white : Colors.black, 
+                  color: isDark ? Colors.white : Colors.black,
                 ),
               ),
-              currentAccountPicture: _buildProfileAvatar(), 
+              currentAccountPicture: _buildProfileAvatar(),
             ),
-            
+
             ListTile(
               leading: const Icon(Icons.settings),
               title: const Text('Pengaturan'),
@@ -210,11 +210,14 @@ class _HomeState extends State<Home> {
                 await Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (_) => SettingsPage(toggleTheme: widget.toggleTheme),
+                    builder: (_) => SettingsPage(
+                      toggleTheme: widget.toggleTheme,
+                      changeLocale: (Locale locale) {},
+                    ),
                   ),
                 );
-                
-                _loadUserData(); 
+
+                _loadUserData();
               },
             ),
 
@@ -260,14 +263,8 @@ class _HomeState extends State<Home> {
         selectedItemColor: Colors.green,
         unselectedItemColor: Colors.grey,
         items: const [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.article),
-            label: "Berita",
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.flag),
-            label: "Misi",
-          ),
+          BottomNavigationBarItem(icon: Icon(Icons.article), label: "Berita"),
+          BottomNavigationBarItem(icon: Icon(Icons.flag), label: "Misi"),
           BottomNavigationBarItem(
             icon: Icon(Icons.card_giftcard),
             label: "Poin",

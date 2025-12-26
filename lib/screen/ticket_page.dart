@@ -33,9 +33,7 @@ class TicketPage extends StatelessWidget {
           }
 
           if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-            return const Center(
-              child: Text("Belum ada tiket yang ditukar"),
-            );
+            return const Center(child: Text("Belum ada tiket yang ditukar"));
           }
 
           final tickets = snapshot.data!.docs;
@@ -48,8 +46,10 @@ class TicketPage extends StatelessWidget {
               return Card(
                 margin: const EdgeInsets.all(8),
                 child: ListTile(
-                  leading: const Icon(Icons.confirmation_number,
-                      color: Colors.green),
+                  leading: const Icon(
+                    Icons.confirmation_number,
+                    color: Colors.green,
+                  ),
                   title: Text(
                     data['hadiah'],
                     style: const TextStyle(fontWeight: FontWeight.bold),
@@ -60,7 +60,9 @@ class TicketPage extends StatelessWidget {
                   trailing: Text(
                     "-${data['poin']} poin",
                     style: const TextStyle(
-                        color: Colors.red, fontWeight: FontWeight.bold),
+                      color: Colors.red,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 ),
               );

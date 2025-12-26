@@ -1,19 +1,106 @@
-import 'dart:io'; 
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:project_kelompok/screen/ticket_page.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:image_picker/image_picker.dart'; 
-import 'package:path_provider/path_provider.dart'; 
-import 'package:path/path.dart' as p; 
+import 'package:image_picker/image_picker.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:path/path.dart' as p;
+
 import '../database/evergreen_db.dart';
 import 'signin.dart';
 import '../main.dart';
+
 import 'package:firebase_auth/firebase_auth.dart' as auth;
 import 'package:cloud_firestore/cloud_firestore.dart';
 
+class EditProfilePage extends StatefulWidget {
+  final String currentUsername;
+  final String currentEmail;
+  final String? currentProfilePicturePath;
+  final int? userId;
+  final Function(String, String, String?) onProfileUpdated;
+
+  const EditProfilePage({
+    super.key,
+    required this.currentUsername,
+    required this.currentEmail,
+    required this.currentProfilePicturePath,
+    required this.userId,
+    required this.onProfileUpdated,
+  });
+
+  @override
+  State<EditProfilePage> createState() => _EditProfilePageState();
+}
+
+class _EditProfilePageState extends State<EditProfilePage> {
+  late TextEditingController usernameController;
+  late TextEditingController emailController;
+  String? profilePicturePath;
+
+  @override
+  void initState() {
+    super.initState();
+    usernameController = TextEditingController(text: widget.currentUsername);
+    emailController = TextEditingController(text: widget.currentEmail);
+    profilePicturePath = widget.currentProfilePicturePath;
+  }
+
+  @override
+  void dispose() {
+    usernameController.dispose();
+    emailController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text("Edit Profil"),
+        backgroundColor: Colors.green,
+      ),
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          children: [
+            TextField(
+              controller: usernameController,
+              decoration: const InputDecoration(labelText: "Username"),
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: emailController,
+              decoration: const InputDecoration(labelText: "Email"),
+            ),
+            const SizedBox(height: 32),
+            ElevatedButton(
+              onPressed: () {
+                widget.onProfileUpdated(
+                  usernameController.text,
+                  emailController.text,
+                  profilePicturePath,
+                );
+                Navigator.pop(context);
+              },
+              child: const Text("Simpan"),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class SettingsPage extends StatefulWidget {
   final ThemeChangeCallback toggleTheme;
-  const SettingsPage({super.key, required this.toggleTheme}); 
+  final LocaleChangeCallback changeLocale;
+
+  const SettingsPage({
+    super.key,
+    required this.toggleTheme,
+    required this.changeLocale,
+  });
 
   @override
   State<SettingsPage> createState() => _SettingsPageState();
@@ -22,10 +109,14 @@ class SettingsPage extends StatefulWidget {
 class _SettingsPageState extends State<SettingsPage> {
   bool isDarkMode = false;
   bool isNotificationEnabled = true;
+
   String username = 'Memuat...';
   String email = 'Memuat...';
   String? profilePicturePath;
   int? userId;
+
+  Locale selectedLocale = const Locale('id');
+
   final EvergreenDb db = EvergreenDb();
 
   @override
@@ -36,139 +127,103 @@ class _SettingsPageState extends State<SettingsPage> {
 
   Future<void> _loadSettings() async {
     final prefs = await SharedPreferences.getInstance();
-    if(mounted) {
-      setState(() {
-        isDarkMode = prefs.getBool('isDarkMode') ?? false;
-        isNotificationEnabled = prefs.getBool('isNotificationEnabled') ?? true;
-        username = prefs.getString('username') ?? 'Pengguna';
-        email = prefs.getString('email') ?? 'email@contoh.com';
-        userId = prefs.getInt('userId');
-        profilePicturePath = prefs.getString('profilePicture');
-      });
-    }
+    if (!mounted) return;
+
+    setState(() {
+      isDarkMode = prefs.getBool('isDarkMode') ?? false;
+      isNotificationEnabled = prefs.getBool('isNotificationEnabled') ?? true;
+      username = prefs.getString('username') ?? 'Pengguna';
+      email = prefs.getString('email') ?? 'email@contoh.com';
+      userId = prefs.getInt('userId');
+      profilePicturePath = prefs.getString('profilePicture');
+      selectedLocale = Locale(prefs.getString('languageCode') ?? 'id');
+    });
   }
 
-  void _toggleDarkMode(bool value) async {
-    setState(() {
-      isDarkMode = value;
-    });
-
+  Future<void> _toggleDarkMode(bool value) async {
     widget.toggleTheme(value);
-
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool('isDarkMode', value); 
+    await prefs.setBool('isDarkMode', value);
+    setState(() => isDarkMode = value);
   }
-  
-  void _toggleNotification(bool value) async {
-    setState(() {
-      isNotificationEnabled = value;
-    });
-    
+
+  Future<void> _toggleNotification(bool value) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool('isNotificationEnabled', value);
+    setState(() => isNotificationEnabled = value);
 
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Notifikasi ${value ? 'diaktifkan' : 'dinonaktifkan'}")),
+        SnackBar(
+          content: Text(
+            value ? "Notifikasi diaktifkan" : "Notifikasi dinonaktifkan",
+          ),
+        ),
       );
     }
+  }
+
+  /// ================== CHANGE LANGUAGE ==================
+  Future<void> _changeLanguage(Locale locale) async {
+    widget.changeLocale(locale);
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('languageCode', locale.languageCode);
+    setState(() => selectedLocale = locale);
   }
 
   void _resetDatabase() {
     showDialog(
       context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: const Text("Reset Database"),
-          content: const Text("Anda yakin ingin menghapus semua data (user, misi, dan poin)? Anda akan dikeluarkan dari aplikasi. Tindakan ini tidak dapat dibatalkan."),
-          actions: <Widget>[
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text("Batal"),
-            ),
-            ElevatedButton(
-              onPressed: () async {
-                await db.resetDatabase();
-                final prefs = await SharedPreferences.getInstance();
-                await prefs.clear();
+      builder: (_) => AlertDialog(
+        title: const Text("Reset Database"),
+        content: const Text("Semua data akan dihapus dan Anda akan logout."),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text("Batal"),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            onPressed: () async {
+              await db.resetDatabase();
+              final prefs = await SharedPreferences.getInstance();
+              await prefs.clear();
 
-                if (mounted) {
-                  Navigator.of(context).pop(); 
-                  Navigator.pushAndRemoveUntil(
-                    context,
-                    MaterialPageRoute(builder: (_) => SignIn(toggleTheme: widget.toggleTheme)),
-                    (route) => false,
-                  );
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text("Database berhasil di-reset. Silakan daftar kembali.")),
-                  );
-                }
-              },
-              style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-              child: const Text("Reset", style: TextStyle(color: Colors.white)),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
-  void _showProfilePage(BuildContext context) {
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (context) => EditProfilePage(
-          currentUsername: username,
-          currentEmail: email,
-          currentProfilePicturePath: profilePicturePath,
-          userId: userId,
-          onProfileUpdated: (newUsername, newEmail, newProfilePicturePath) {
-            setState(() {
-              username = newUsername;
-              email = newEmail;
-              profilePicturePath = newProfilePicturePath;
-            });
-          },
-        ),
+              if (!mounted) return;
+              Navigator.pushAndRemoveUntil(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => SignIn(
+                    toggleTheme: widget.toggleTheme,
+                    changeLocale: (Locale locale) {},
+                  ),
+                ),
+                (_) => false,
+              );
+            },
+            child: const Text("Reset"),
+          ),
+        ],
       ),
     );
   }
 
-  void _showChangePasswordPage(BuildContext context) {
-    Navigator.of(context).push(
+  void _showProfilePage(BuildContext context) {
+    Navigator.push(
+      context,
       MaterialPageRoute(
-        builder: (context) => Scaffold(
-          appBar: AppBar(
-            title: const Text("Keamanan Akun"),
-            backgroundColor: Colors.green,
-          ),
-          body: Padding(
-            padding: const EdgeInsets.all(20),
-            child: Column(
-              children: [
-                const TextField(
-                  decoration: InputDecoration(labelText: "Password Lama"),
-                  obscureText: true,
-                ),
-                const TextField(
-                  decoration: InputDecoration(labelText: "Password Baru"),
-                  obscureText: true,
-                ),
-                const TextField(
-                  decoration: InputDecoration(labelText: "Konfirmasi Password Baru"),
-                  obscureText: true,
-                ),
-                const SizedBox(height: 20),
-                ElevatedButton(
-                  onPressed: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text("Fitur ganti password belum diimplementasi")),
-                    );
-                  },
-                  child: const Text("Ubah Password"),
-                ),
-              ],
-            ),
-          ),
+        builder: (_) => EditProfilePage(
+          currentUsername: username,
+          currentEmail: email,
+          currentProfilePicturePath: profilePicturePath,
+          userId: userId,
+          onProfileUpdated: (u, e, p) {
+            setState(() {
+              username = u;
+              email = e;
+              profilePicturePath = p;
+            });
+          },
         ),
       ),
     );
@@ -184,19 +239,9 @@ class _SettingsPageState extends State<SettingsPage> {
       body: SingleChildScrollView(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
-          children: <Widget>[
-            
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
-              child: Text(
-                "Akun & Privasi",
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 16,
-                  color: Theme.of(context).colorScheme.primary,
-                ),
-              ),
-            ),
+          children: [
+            /// ===== AKUN =====
+            _sectionTitle("Akun & Privasi"),
             ListTile(
               leading: const Icon(Icons.account_circle),
               title: const Text("Profil Pengguna"),
@@ -204,93 +249,69 @@ class _SettingsPageState extends State<SettingsPage> {
               onTap: () => _showProfilePage(context),
             ),
             const Divider(),
-            ListTile(
-              leading: const Icon(Icons.security),
-              title: const Text("Keamanan Akun"),
-              subtitle: const Text("Ganti password"),
-              onTap: () => _showChangePasswordPage(context),
-            ),
-            const Divider(),
-            
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
-              child: Text(
-                "Tampilan",
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 16,
-                  color: Theme.of(context).colorScheme.primary,
-                ),
-              ),
-            ),
+
+            /// ===== TAMPILAN =====
+            _sectionTitle("Tampilan"),
             SwitchListTile(
               title: const Text("Mode Gelap"),
-              subtitle: const Text("Mengubah tema aplikasi menjadi gelap secara instan"),
-              secondary: const Icon(Icons.brightness_4),
+              secondary: const Icon(Icons.dark_mode),
               value: isDarkMode,
-              onChanged: _toggleDarkMode, 
+              onChanged: _toggleDarkMode,
             ),
             const Divider(),
 
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
-              child: Text(
-                "Tiket",
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 16,
-                  color: Theme.of(context).colorScheme.primary,
-                ),
-              ),
-            ),
+            /// ===== BAHASA =====
+            _sectionTitle("Bahasa"),
             ListTile(
-              leading: const Icon(Icons.receipt_long),
-              title: const Text("Riwayat Penukaran"),
-              subtitle: const Text("Lihat hasil tukar poin Anda"),
-              onTap: () {
-                Navigator.of(context).push(
-                  MaterialPageRoute(builder: (_) => TicketPage()),
-                );
-              },
+              leading: const Icon(Icons.language),
+              title: const Text("Bahasa Aplikasi"),
+              trailing: DropdownButton<Locale>(
+                value: selectedLocale,
+                items: const [
+                  DropdownMenuItem(
+                    value: Locale('id'),
+                    child: Text("Indonesia"),
+                  ),
+                  DropdownMenuItem(value: Locale('en'), child: Text("English")),
+                ],
+                onChanged: (locale) {
+                  if (locale != null) {
+                    _changeLanguage(locale);
+                  }
+                },
+              ),
             ),
             const Divider(),
-            
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
-              child: Text(
-                "Umum",
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 16,
-                  color: Theme.of(context).colorScheme.primary,
-                ),
-              ),
-            ),
-            
+
+            /// ===== NOTIFIKASI =====
+            _sectionTitle("Notifikasi"),
             SwitchListTile(
               title: const Text("Notifikasi"),
-              subtitle: const Text("Izinkan aplikasi mengirim pemberitahuan"),
               secondary: const Icon(Icons.notifications),
               value: isNotificationEnabled,
               onChanged: _toggleNotification,
             ),
             const Divider(),
 
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
-              child: Text(
-                "Data & Privasi",
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 16,
-                  color: Theme.of(context).colorScheme.primary,
-                ),
-              ),
-            ),
+            /// ===== TIKET =====
+            _sectionTitle("Tiket"),
             ListTile(
-              title: const Text("Reset Data Aplikasi"),
-              subtitle: const Text("Hapus semua data lokal (user, misi, poin) dan keluar."),
+              leading: const Icon(Icons.receipt_long),
+              title: const Text("Riwayat Penukaran"),
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => TicketPage()),
+                );
+              },
+            ),
+            const Divider(),
+
+            /// ===== DATA =====
+            _sectionTitle("Data & Privasi"),
+            ListTile(
               leading: const Icon(Icons.delete_forever, color: Colors.red),
+              title: const Text("Reset Data Aplikasi"),
               onTap: _resetDatabase,
             ),
             const Divider(),
@@ -299,275 +320,15 @@ class _SettingsPageState extends State<SettingsPage> {
       ),
     );
   }
-}
 
-
-class EditProfilePage extends StatefulWidget {
-  final String currentUsername;
-  final String currentEmail;
-  final String? currentProfilePicturePath; 
-  final int? userId;
-  final Function(String, String, String?) onProfileUpdated; 
-
-  const EditProfilePage({
-    super.key,
-    required this.currentUsername,
-    required this.currentEmail,
-    this.currentProfilePicturePath,
-    required this.userId,
-    required this.onProfileUpdated,
-  });
-
-  @override
-  State<EditProfilePage> createState() => _EditProfilePageState();
-}
-
-class _EditProfilePageState extends State<EditProfilePage> {
-  final _formKey = GlobalKey<FormState>();
-  final usernameController = TextEditingController();
-  final emailController = TextEditingController();
-  final EvergreenDb db = EvergreenDb();
-  File? _imageFile; 
-
-  @override
-  void initState() {
-    super.initState();
-    usernameController.text = widget.currentUsername;
-    emailController.text = widget.currentEmail;
-    if (widget.currentProfilePicturePath != null && widget.currentProfilePicturePath!.isNotEmpty) {
-      _imageFile = File(widget.currentProfilePicturePath!);
-    }
-  }
-  
-  @override
-  void dispose() {
-    usernameController.dispose();
-    emailController.dispose();
-    super.dispose();
-  }
-
-  Future<void> _pickImage(ImageSource source) async {
-    final picker = ImagePicker();
-    final pickedFile = await picker.pickImage(source: source);
-
-    if (pickedFile != null) {
-      setState(() {
-        _imageFile = File(pickedFile.path);
-      });
-    }
-  }
-
-  Future<void> _showImageSourceActionSheet(BuildContext context) async {
-    await showModalBottomSheet(
-      context: context,
-      builder: (BuildContext context) {
-        return SafeArea(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: <Widget>[
-              ListTile(
-                leading: const Icon(Icons.camera_alt),
-                title: const Text('Kamera'),
-                onTap: () {
-                  _pickImage(ImageSource.camera);
-                  Navigator.pop(context);
-                },
-              ),
-              ListTile(
-                leading: const Icon(Icons.photo_library),
-                title: const Text('Galeri'),
-                onTap: () {
-                  _pickImage(ImageSource.gallery);
-                  Navigator.pop(context);
-                },
-              ),
-            ],
-          ),
-        );
-      },
-    );
-  }
-
-  Future<String?> _saveImageLocally(File image) async {
-    try {
-      final directory = await getApplicationDocumentsDirectory();
-      final String fileName = p.basename(image.path);
-      final String localPath = p.join(directory.path, fileName);
-      final File newImage = await image.copy(localPath);
-      return newImage.path;
-    } catch (e) {
-      print("Error saving image: $e");
-      return null;
-    }
-  }
-
-  Future<void> _updateProfile() async {
-  if (!_formKey.currentState!.validate()) return;
-
-  final auth.User? user = auth.FirebaseAuth.instance.currentUser;
-
-  if (user == null) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text("User belum login")),
-    );
-    return;
-  }
-
-  final uid = user.uid;
-  final newUsername = usernameController.text.trim();
-  final newEmail = emailController.text.trim();
-
-  String? photoPath = widget.currentProfilePicturePath;
-
-  if (_imageFile != null) {
-    photoPath = await _saveImageLocally(_imageFile!);
-  }
-
-  try {
-    await FirebaseFirestore.instance
-        .collection('users')
-        .doc(uid)
-        .update({
-      'username': newUsername,
-      'email': newEmail,
-      'photoUrl': photoPath,
-      'updatedAt': FieldValue.serverTimestamp(),
-    });
-
-    await user.updateDisplayName(newUsername);
-
-    if (newEmail != user.email) {
-      await user.verifyBeforeUpdateEmail(newEmail);
-    }
-
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('username', newUsername);
-    await prefs.setString('email', newEmail);
-    if (photoPath != null) {
-      await prefs.setString('profilePicture', photoPath);
-    }
-
-    widget.onProfileUpdated(newUsername, newEmail, photoPath);
-
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Profil berhasil diperbarui")),
-      );
-      Navigator.pop(context);
-    }
-  } on auth.FirebaseAuthException catch (e) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text("Auth error: ${e.message}")),
-    );
-  } catch (e) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text("Error: $e")),
-    );
-  }
-}
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text("Edit Profil"),
-        backgroundColor: Colors.green,
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Center(
-                child: GestureDetector(
-                  onTap: () => _showImageSourceActionSheet(context),
-                  child: Stack(
-                    children: [
-                      CircleAvatar(
-                        radius: 50,
-                        backgroundColor: Colors.grey.shade200,
-                        backgroundImage: _imageFile != null && _imageFile!.existsSync()
-                            ? FileImage(_imageFile!)
-                            : null,
-                        child: _imageFile == null || !_imageFile!.existsSync()
-                            ? Icon(Icons.person, size: 50, color: Colors.grey.shade600)
-                            : null,
-                      ),
-                      Positioned(
-                        bottom: 0,
-                        right: 0,
-                        child: Container(
-                          decoration: BoxDecoration(
-                            color: Theme.of(context).primaryColor,
-                            shape: BoxShape.circle,
-                          ),
-                          child: const Padding(
-                            padding: EdgeInsets.all(4.0),
-                            child: Icon(
-                              Icons.edit,
-                              color: Colors.white,
-                              size: 20,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              const SizedBox(height: 30),
-              
-              TextFormField(
-                controller: usernameController,
-                decoration: const InputDecoration(
-                  labelText: "Username",
-                  border: OutlineInputBorder(),
-                  prefixIcon: Icon(Icons.person),
-                ),
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return "Username tidak boleh kosong";
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 15),
-              
-              TextFormField(
-                controller: emailController,
-                decoration: const InputDecoration(
-                  labelText: "Email",
-                  border: OutlineInputBorder(),
-                  prefixIcon: Icon(Icons.email),
-                ),
-                keyboardType: TextInputType.emailAddress,
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return "Email tidak boleh kosong";
-                  }
-                  if (!value.contains('@')) {
-                    return "Masukkan email yang valid";
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 30),
-              
-              ElevatedButton(
-                onPressed: _updateProfile,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.green,
-                  padding: const EdgeInsets.symmetric(vertical: 15),
-                ),
-                child: const Text(
-                  "Simpan Perubahan",
-                  style: TextStyle(fontSize: 16, color: Colors.white),
-                ),
-              ),
-            ],
-          ),
+  Widget _sectionTitle(String title) {
+    return Padding(
+      padding: const EdgeInsets.all(16),
+      child: Text(
+        title,
+        style: TextStyle(
+          fontWeight: FontWeight.bold,
+          color: Theme.of(context).colorScheme.primary,
         ),
       ),
     );
