@@ -1,39 +1,40 @@
 import 'package:flutter/material.dart';
-import 'screen/signin.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:awesome_notifications/awesome_notifications.dart';
 
+import 'screen/signin.dart';
+import 'l10n/app_localizations_delegate.dart';
+
 typedef ThemeChangeCallback = void Function(bool isDarkMode);
+typedef LocaleChangeCallback = void Function(Locale locale);
 
 FirebaseAnalytics analytics = FirebaseAnalytics.instance;
 
-void main() async {
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp();
-  await FirebaseAnalytics.instance.setAnalyticsCollectionEnabled(true);
 
-  AwesomeNotifications().initialize(
-    null,
-    [
-      NotificationChannel(
-        channelKey: 'basic_channel',
-        channelName: 'Basic notifications',
-        channelDescription: 'Notification channel for point redemption',
-        defaultColor: Colors.green,
-        ledColor: Colors.white,
-        importance: NotificationImportance.High,
-        channelShowBadge: true,
-      )
-    ],
-    debug: true,
-  );
+  AwesomeNotifications().initialize(null, [
+    NotificationChannel(
+      channelKey: 'basic_channel',
+      channelName: 'Notifikasi Evergreen',
+      channelDescription: 'Notifikasi misi dan voucher',
+      defaultColor: Colors.green,
+      importance: NotificationImportance.High,
+      playSound: true,
+      enableVibration: true,
+      channelShowBadge: true,
+    ),
+  ]);
 
-  AwesomeNotifications().isNotificationAllowed().then((isAllowed) {
+  await AwesomeNotifications().isNotificationAllowed().then((isAllowed) {
     if (!isAllowed) {
       AwesomeNotifications().requestPermissionToSendNotifications();
     }
   });
+
   runApp(const MyApp());
 }
 
@@ -46,25 +47,38 @@ class MyApp extends StatefulWidget {
 
 class _MyAppState extends State<MyApp> {
   bool _isDarkMode = false;
+  Locale _locale = const Locale('id');
 
   void _toggleTheme(bool isDark) {
-    setState(() {
-      _isDarkMode = isDark;
-    });
+    setState(() => _isDarkMode = isDark);
+  }
+
+  void _changeLocale(Locale locale) {
+    setState(() => _locale = locale);
   }
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
+
+      locale: _locale,
+      supportedLocales: const [Locale('id'), Locale('en')],
+      localizationsDelegates: const [
+        AppLocalizationsDelegate(),
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
+
       title: 'Evergreen App',
       theme: ThemeData.light(),
       darkTheme: ThemeData.dark(),
       themeMode: _isDarkMode ? ThemeMode.dark : ThemeMode.light,
-      navigatorObservers: [
-        FirebaseAnalyticsObserver(analytics: analytics),
-      ],
-      home: SignIn(toggleTheme: _toggleTheme),
+
+      navigatorObservers: [FirebaseAnalyticsObserver(analytics: analytics)],
+
+      home: SignIn(toggleTheme: _toggleTheme, changeLocale: _changeLocale),
     );
   }
 }

@@ -12,7 +12,11 @@ import '../main.dart';
 
 class SignIn extends StatefulWidget {
   final ThemeChangeCallback toggleTheme;
-  const SignIn({super.key, required this.toggleTheme});
+  const SignIn({
+    super.key,
+    required this.toggleTheme,
+    required void Function(Locale locale) changeLocale,
+  });
 
   @override
   State<SignIn> createState() => _SignInState();
@@ -60,8 +64,7 @@ class _SignInState extends State<SignIn> {
     );
 
     try {
-      final UserCredential credential =
-          await _auth.signInWithEmailAndPassword(
+      final UserCredential credential = await _auth.signInWithEmailAndPassword(
         email: email,
         password: password,
       );
@@ -95,10 +98,7 @@ class _SignInState extends State<SignIn> {
 
       analytics.logEvent(
         name: "sign_in_success",
-        parameters: {
-          "uid": uid,
-          "email": data['email'],
-        },
+        parameters: {"uid": uid, "email": data['email']},
       );
 
       if (mounted) {
@@ -113,63 +113,86 @@ class _SignInState extends State<SignIn> {
     } on FirebaseAuthException catch (e) {
       final msg = handleFirebaseAuthException(e);
 
-      analytics.logEvent(
-        name: "sign_in_failed",
-        parameters: {"error": e.code},
-      );
+      analytics.logEvent(name: "sign_in_failed", parameters: {"error": e.code});
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(msg)),
-      );
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
     } catch (e) {
       analytics.logEvent(
         name: "sign_in_failed_unknown",
         parameters: {"error": e.toString()},
       );
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Error: $e")),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text("Error: $e")));
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text("Sign In"),
-        backgroundColor: Colors.green,
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          children: [
-            TextField(
-              controller: emailController,
-              decoration: const InputDecoration(labelText: "Email"),
-            ),
-            TextField(
-              controller: passwordController,
-              obscureText: true,
-              decoration: const InputDecoration(labelText: "Password"),
-            ),
-            const SizedBox(height: 20),
-            ElevatedButton(
-              onPressed: _login,
-              style:
-                  ElevatedButton.styleFrom(backgroundColor: Colors.green),
-              child: const Text("Sign In"),
-            ),
-            TextButton(
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => const SignUp()),
-                );
-              },
-              child: const Text("Belum punya akun? Sign Up"),
-            ),
-          ],
+    return Semantics(
+      label: 'Halaman Sign In',
+      child: Scaffold(
+        appBar: AppBar(
+          title: const Text('Sign In'),
+          backgroundColor: Colors.green,
+        ),
+        body: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            children: [
+              Semantics(
+                label: 'Input Email',
+                hint: 'Masukkan alamat email',
+                textField: true,
+                child: TextField(
+                  controller: emailController,
+                  keyboardType: TextInputType.emailAddress,
+                  decoration: const InputDecoration(labelText: 'Email'),
+                ),
+              ),
+
+              Semantics(
+                label: 'Input Password',
+                hint: 'Masukkan kata sandi',
+                textField: true,
+                child: TextField(
+                  controller: passwordController,
+                  obscureText: true,
+                  decoration: const InputDecoration(labelText: 'Password'),
+                ),
+              ),
+
+              const SizedBox(height: 20),
+
+              Semantics(
+                label: 'Sign In Button',
+                button: true,
+                child: ElevatedButton(
+                  onPressed: _login,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.green,
+                  ),
+                  child: const Text('Sign In'),
+                ),
+              ),
+
+              Semantics(
+                label: 'Belum punya akun? Sign Up',
+                hint: 'Ketuk dua kali untuk membuat akun baru',
+                button: true,
+                child: TextButton(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const SignUp()),
+                    );
+                  },
+                  child: const Text('Belum punya akun? Sign Up'),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

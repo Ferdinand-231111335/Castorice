@@ -3,21 +3,26 @@ import 'dart:io';
 import 'dart:async';
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:flutter/material.dart';
+import 'package:awesome_notifications/awesome_notifications.dart';
 import 'package:project_kelompok/screen/about.dart';
+import 'package:project_kelompok/screen/misi_page.dart';
 import 'package:project_kelompok/screen/signin.dart';
 import 'package:project_kelompok/screen/ticket_page.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:intl/intl.dart'; 
+import 'package:intl/intl.dart';
 
-import '../main.dart'; 
+import '../main.dart';
 import '../database/evergreen_db.dart';
 import '../model/misi_model.dart';
 import '../model/poin_model.dart';
 
 import 'berita_page.dart';
+<<<<<<< HEAD
 import 'misi_page.dart';
+=======
+>>>>>>> ea4cab3eb6adb3108fd3b460ad9963fb1ef9d35d
 import 'poin_page.dart';
-import 'settings_page.dart'; 
+import 'settings_page.dart';
 
 class Home extends StatefulWidget {
   final ThemeChangeCallback toggleTheme;
@@ -33,15 +38,11 @@ class _HomeState extends State<Home> {
   String? username;
   String? profilePicturePath;
   int? totalPoin;
-  
+
   late Timer _timer;
   String _currentTimeWIB = '';
 
-  final List<Widget> _pages = const [
-    BeritaPage(), 
-    MisiPage(),   
-    PoinPage(),   
-  ];
+  final List<Widget> _pages = const [BeritaPage(), MisiPage(), PoinPage()];
 
   @override
   void initState() {
@@ -49,6 +50,9 @@ class _HomeState extends State<Home> {
     _loadDataFromDb();
     _loadUserData();
     _startTimer();
+
+    /// ✅ TAMBAHAN NOTIFIKASI
+    _checkNotificationPermission();
   }
 
   @override
@@ -57,8 +61,17 @@ class _HomeState extends State<Home> {
     super.dispose();
   }
 
+  /// ✅ CEK IZIN NOTIFIKASI
+  Future<void> _checkNotificationPermission() async {
+    final isAllowed = await AwesomeNotifications().isNotificationAllowed();
+
+    if (!isAllowed) {
+      await AwesomeNotifications().requestPermissionToSendNotifications();
+    }
+  }
+
   void _startTimer() {
-    _updateTime(); 
+    _updateTime();
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
       _updateTime();
     });
@@ -66,8 +79,8 @@ class _HomeState extends State<Home> {
 
   void _updateTime() {
     final now = DateTime.now();
-    final formatter = DateFormat('HH:mm:ss'); 
-    
+    final formatter = DateFormat('HH:mm:ss');
+
     if (mounted) {
       setState(() {
         _currentTimeWIB = formatter.format(now);
@@ -75,11 +88,9 @@ class _HomeState extends State<Home> {
     }
   }
 
-
   Future<void> _loadUserData() async {
     final prefs = await SharedPreferences.getInstance();
-    
-    final int poin = await db.getTotalPoin(); 
+    final int poin = await db.getTotalPoin();
 
     if (mounted) {
       setState(() {
@@ -121,11 +132,16 @@ class _HomeState extends State<Home> {
   Future<void> _logout(BuildContext context) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.clear();
-    
+
     if (mounted) {
       Navigator.pushAndRemoveUntil(
         context,
-        MaterialPageRoute(builder: (_) => SignIn(toggleTheme: widget.toggleTheme)),
+        MaterialPageRoute(
+          builder: (_) => SignIn(
+            toggleTheme: widget.toggleTheme,
+            changeLocale: (Locale locale) {},
+          ),
+        ),
         (route) => false,
       );
     }
@@ -138,7 +154,7 @@ class _HomeState extends State<Home> {
         backgroundImage: FileImage(File(profilePicturePath!)),
       );
     }
-    
+
     final bool isDark = Theme.of(context).brightness == Brightness.dark;
     return CircleAvatar(
       backgroundColor: isDark ? Colors.grey[700] : Colors.white,
@@ -162,7 +178,6 @@ class _HomeState extends State<Home> {
           style: TextStyle(fontWeight: FontWeight.bold, fontSize: 22),
         ),
         centerTitle: true,
-
         actions: [
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16.0),
@@ -172,14 +187,13 @@ class _HomeState extends State<Home> {
                 style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w600,
-                  color: isDark ? Colors.white : Colors.black, 
+                  color: isDark ? Colors.white : Colors.black,
                 ),
               ),
             ),
           ),
         ],
       ),
-
       drawer: Drawer(
         child: ListView(
           children: [
@@ -196,12 +210,11 @@ class _HomeState extends State<Home> {
                 'Total Poin: $poinText',
                 style: TextStyle(
                   fontWeight: FontWeight.w600,
-                  color: isDark ? Colors.white : Colors.black, 
+                  color: isDark ? Colors.white : Colors.black,
                 ),
               ),
-              currentAccountPicture: _buildProfileAvatar(), 
+              currentAccountPicture: _buildProfileAvatar(),
             ),
-            
             ListTile(
               leading: const Icon(Icons.settings),
               title: const Text('Pengaturan'),
@@ -210,14 +223,15 @@ class _HomeState extends State<Home> {
                 await Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (_) => SettingsPage(toggleTheme: widget.toggleTheme),
+                    builder: (_) => SettingsPage(
+                      toggleTheme: widget.toggleTheme,
+                      changeLocale: (Locale locale) {},
+                    ),
                   ),
                 );
-                
-                _loadUserData(); 
+                _loadUserData();
               },
             ),
-
             ListTile(
               leading: const Icon(Icons.local_activity),
               title: const Text('Voucher Saya'),
@@ -229,7 +243,6 @@ class _HomeState extends State<Home> {
                 );
               },
             ),
-
             ListTile(
               leading: const Icon(Icons.info),
               title: const Text('Tentang Aplikasi'),
@@ -241,7 +254,6 @@ class _HomeState extends State<Home> {
                 );
               },
             ),
-
             const Divider(),
             ListTile(
               leading: const Icon(Icons.logout, color: Colors.red),
@@ -251,23 +263,15 @@ class _HomeState extends State<Home> {
           ],
         ),
       ),
-
       body: _pages[_selectedIndex],
-
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _selectedIndex,
         onTap: _onItemTapped,
         selectedItemColor: Colors.green,
         unselectedItemColor: Colors.grey,
         items: const [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.article),
-            label: "Berita",
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.flag),
-            label: "Misi",
-          ),
+          BottomNavigationBarItem(icon: Icon(Icons.article), label: "Berita"),
+          BottomNavigationBarItem(icon: Icon(Icons.flag), label: "Misi"),
           BottomNavigationBarItem(
             icon: Icon(Icons.card_giftcard),
             label: "Poin",
