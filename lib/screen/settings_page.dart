@@ -163,7 +163,6 @@ class _SettingsPageState extends State<SettingsPage> {
     }
   }
 
-  /// ================== CHANGE LANGUAGE ==================
   Future<void> _changeLanguage(Locale locale) async {
     widget.changeLocale(locale);
     final prefs = await SharedPreferences.getInstance();

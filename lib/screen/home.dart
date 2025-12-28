@@ -17,10 +17,6 @@ import '../model/misi_model.dart';
 import '../model/poin_model.dart';
 
 import 'berita_page.dart';
-<<<<<<< HEAD
-import 'misi_page.dart';
-=======
->>>>>>> ea4cab3eb6adb3108fd3b460ad9963fb1ef9d35d
 import 'poin_page.dart';
 import 'settings_page.dart';
 

@@ -26,11 +26,9 @@ class _PoinPageState extends State<PoinPage> {
     _requestNotifPermission();
     _loadPoin();
     _scheduleMisiReminder();
+    _scheduleVoucherExpiredNotifTest();
   }
 
-  // =====================================================
-  // REQUEST PERMISSION (WAJIB ANDROID 13+)
-  // =====================================================
   Future<void> _requestNotifPermission() async {
     final isAllowed = await AwesomeNotifications().isNotificationAllowed();
     if (!isAllowed) {
@@ -74,9 +72,6 @@ class _PoinPageState extends State<PoinPage> {
     );
   }
 
-  // =====================================================
-  // NOTIF MISI (MUNCUL 10 DETIK, BISA BERKALI-KALI)
-  // =====================================================
   Future<void> _scheduleMisiReminder() async {
     final now = DateTime.now().add(const Duration(seconds: 10));
 
@@ -107,9 +102,6 @@ class _PoinPageState extends State<PoinPage> {
     );
   }
 
-  // =====================================================
-  // NOTIF VOUCHER EXPIRED (TEST 15 DETIK)
-  // =====================================================
   Future<void> _scheduleVoucherExpiredNotifTest() async {
     final now = DateTime.now().add(const Duration(seconds: 15));
 
@@ -176,9 +168,6 @@ class _PoinPageState extends State<PoinPage> {
     );
   }
 
-  // =====================================================
-  // UI
-  // =====================================================
   @override
   Widget build(BuildContext context) {
     return Column(
