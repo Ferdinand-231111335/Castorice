@@ -3,6 +3,7 @@ import 'dart:io';
 import 'dart:async';
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:flutter/material.dart';
+import 'package:awesome_notifications/awesome_notifications.dart';
 import 'package:project_kelompok/screen/about.dart';
 import 'package:project_kelompok/screen/misi_page.dart';
 import 'package:project_kelompok/screen/signin.dart';
@@ -45,12 +46,24 @@ class _HomeState extends State<Home> {
     _loadDataFromDb();
     _loadUserData();
     _startTimer();
+
+    /// ✅ TAMBAHAN NOTIFIKASI
+    _checkNotificationPermission();
   }
 
   @override
   void dispose() {
     _timer.cancel();
     super.dispose();
+  }
+
+  /// ✅ CEK IZIN NOTIFIKASI
+  Future<void> _checkNotificationPermission() async {
+    final isAllowed = await AwesomeNotifications().isNotificationAllowed();
+
+    if (!isAllowed) {
+      await AwesomeNotifications().requestPermissionToSendNotifications();
+    }
   }
 
   void _startTimer() {
@@ -73,7 +86,6 @@ class _HomeState extends State<Home> {
 
   Future<void> _loadUserData() async {
     final prefs = await SharedPreferences.getInstance();
-
     final int poin = await db.getTotalPoin();
 
     if (mounted) {
@@ -162,7 +174,6 @@ class _HomeState extends State<Home> {
           style: TextStyle(fontWeight: FontWeight.bold, fontSize: 22),
         ),
         centerTitle: true,
-
         actions: [
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16.0),
@@ -179,7 +190,6 @@ class _HomeState extends State<Home> {
           ),
         ],
       ),
-
       drawer: Drawer(
         child: ListView(
           children: [
@@ -201,7 +211,6 @@ class _HomeState extends State<Home> {
               ),
               currentAccountPicture: _buildProfileAvatar(),
             ),
-
             ListTile(
               leading: const Icon(Icons.settings),
               title: const Text('Pengaturan'),
@@ -216,11 +225,9 @@ class _HomeState extends State<Home> {
                     ),
                   ),
                 );
-
                 _loadUserData();
               },
             ),
-
             ListTile(
               leading: const Icon(Icons.local_activity),
               title: const Text('Voucher Saya'),
@@ -232,7 +239,6 @@ class _HomeState extends State<Home> {
                 );
               },
             ),
-
             ListTile(
               leading: const Icon(Icons.info),
               title: const Text('Tentang Aplikasi'),
@@ -244,7 +250,6 @@ class _HomeState extends State<Home> {
                 );
               },
             ),
-
             const Divider(),
             ListTile(
               leading: const Icon(Icons.logout, color: Colors.red),
@@ -254,9 +259,7 @@ class _HomeState extends State<Home> {
           ],
         ),
       ),
-
       body: _pages[_selectedIndex],
-
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _selectedIndex,
         onTap: _onItemTapped,

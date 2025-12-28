@@ -240,7 +240,6 @@ class _SettingsPageState extends State<SettingsPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            /// ===== AKUN =====
             _sectionTitle("Akun & Privasi"),
             ListTile(
               leading: const Icon(Icons.account_circle),
@@ -250,7 +249,6 @@ class _SettingsPageState extends State<SettingsPage> {
             ),
             const Divider(),
 
-            /// ===== TAMPILAN =====
             _sectionTitle("Tampilan"),
             SwitchListTile(
               title: const Text("Mode Gelap"),
@@ -260,7 +258,6 @@ class _SettingsPageState extends State<SettingsPage> {
             ),
             const Divider(),
 
-            /// ===== BAHASA =====
             _sectionTitle("Bahasa"),
             ListTile(
               leading: const Icon(Icons.language),
@@ -283,7 +280,6 @@ class _SettingsPageState extends State<SettingsPage> {
             ),
             const Divider(),
 
-            /// ===== NOTIFIKASI =====
             _sectionTitle("Notifikasi"),
             SwitchListTile(
               title: const Text("Notifikasi"),
@@ -293,7 +289,6 @@ class _SettingsPageState extends State<SettingsPage> {
             ),
             const Divider(),
 
-            /// ===== TIKET =====
             _sectionTitle("Tiket"),
             ListTile(
               leading: const Icon(Icons.receipt_long),
@@ -307,7 +302,6 @@ class _SettingsPageState extends State<SettingsPage> {
             ),
             const Divider(),
 
-            /// ===== DATA =====
             _sectionTitle("Data & Privasi"),
             ListTile(
               leading: const Icon(Icons.delete_forever, color: Colors.red),

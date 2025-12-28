@@ -19,12 +19,21 @@ Future<void> main() async {
   AwesomeNotifications().initialize(null, [
     NotificationChannel(
       channelKey: 'basic_channel',
-      channelName: 'Basic notifications',
-      channelDescription: 'Notification channel',
+      channelName: 'Notifikasi Evergreen',
+      channelDescription: 'Notifikasi misi dan voucher',
       defaultColor: Colors.green,
       importance: NotificationImportance.High,
+      playSound: true,
+      enableVibration: true,
+      channelShowBadge: true,
     ),
   ]);
+
+  await AwesomeNotifications().isNotificationAllowed().then((isAllowed) {
+    if (!isAllowed) {
+      AwesomeNotifications().requestPermissionToSendNotifications();
+    }
+  });
 
   runApp(const MyApp());
 }
@@ -53,7 +62,6 @@ class _MyAppState extends State<MyApp> {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
 
-      /// 🔥 KUNCI LANGUAGE SWITCH
       locale: _locale,
       supportedLocales: const [Locale('id'), Locale('en')],
       localizationsDelegates: const [
@@ -70,7 +78,6 @@ class _MyAppState extends State<MyApp> {
 
       navigatorObservers: [FirebaseAnalyticsObserver(analytics: analytics)],
 
-      /// 🔥 KUNCI KEDUA: KIRIM CALLBACK KE PAGE
       home: SignIn(toggleTheme: _toggleTheme, changeLocale: _changeLocale),
     );
   }
