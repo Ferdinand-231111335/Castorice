@@ -15,7 +15,7 @@ import '../model/misi_model.dart';
 import '../model/poin_model.dart';
 
 import 'berita_page.dart';
-import 'misi_dart.dart';
+import 'misi_page.dart';
 import 'poin_page.dart';
 import 'settings_page.dart'; 
 
