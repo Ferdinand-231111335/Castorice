@@ -6,16 +6,27 @@ import '../model/misi_model.dart';
 import '../widget/rewarded_ads.dart';
 
 class MisiPage extends StatefulWidget {
-  const MisiPage({super.key});
+  final FirebaseFirestore? firestore;
+  final FirebaseAuth? auth;
+  final FirebaseAnalytics? analytics;
+  final bool isTest;
+
+  const MisiPage({
+    super.key,
+    this.firestore,
+    this.auth,
+    this.analytics,
+    this.isTest = false,
+  });
 
   @override
   State<MisiPage> createState() => _MisiPageState();
 }
 
 class _MisiPageState extends State<MisiPage> {
-  final FirebaseFirestore firestore = FirebaseFirestore.instance;
-  final FirebaseAuth auth = FirebaseAuth.instance;
-  final FirebaseAnalytics analytics = FirebaseAnalytics.instance;
+  late FirebaseFirestore firestore;
+  late FirebaseAuth auth;
+  FirebaseAnalytics? analytics;
 
   List<Misi> misi = [];
   bool _isWatchingAd = false;
@@ -23,14 +34,21 @@ class _MisiPageState extends State<MisiPage> {
   @override
   void initState() {
     super.initState();
-    _loadMisi();
-    RewardedAds.load();
-
-    analytics.logEvent(
-      name: "misi_page_opened",
-      parameters: {"page": "MisiPage"},
+    if (widget.isTest) {
+      _loadMisi();
+      return;
+    }
+      firestore = widget.firestore ?? FirebaseFirestore.instance;
+      auth = widget.auth ?? FirebaseAuth.instance;
+      analytics = widget.analytics ?? FirebaseAnalytics.instance;
+      
+      _loadMisi();
+      RewardedAds.load();
+      analytics?.logEvent(
+        name: "misi_page_opened",
+        parameters: {"page": "MisiPage"},
     );
-  }
+}
 
   void _loadMisi() {
     setState(() {
@@ -46,13 +64,15 @@ class _MisiPageState extends State<MisiPage> {
       ];
     });
 
-    analytics.logEvent(
-      name: "misi_list_loaded",
-      parameters: {"total_misi": misi.length},
-    );
-  }
+    if (!widget.isTest) {
+      analytics?.logEvent(
+        name: "misi_list_loaded",
+        parameters: {"total_misi": misi.length},
+      );
+  }}
 
   Future<void> _tambahPoin(int poin, String sumber) async {
+    if (widget.isTest) return;
     final user = auth.currentUser;
     if (user == null) return;
 
@@ -67,7 +87,7 @@ class _MisiPageState extends State<MisiPage> {
       });
     });
 
-    analytics.logEvent(
+    analytics?.logEvent(
       name: "poin_didapat",
       parameters: {
         "jumlah": poin,
@@ -77,6 +97,7 @@ class _MisiPageState extends State<MisiPage> {
   }
 
   Future<void> _selesaikanMisi(Misi misiItem) async {
+    if (widget.isTest) return;
     if (misiItem.nama == "Tonton Iklan") return;
 
     await _tambahPoin(misiItem.poin, misiItem.nama);
@@ -89,7 +110,7 @@ class _MisiPageState extends State<MisiPage> {
       ),
     );
 
-    analytics.logEvent(
+    analytics?.logEvent(
       name: "misi_completed",
       parameters: {
         "nama_misi": misiItem.nama,
@@ -99,6 +120,7 @@ class _MisiPageState extends State<MisiPage> {
   }
 
   void _selesaikanMisiIklan(Misi misiItem) {
+    if (widget.isTest) return;
     if (_isWatchingAd) return;
 
     _isWatchingAd = true;

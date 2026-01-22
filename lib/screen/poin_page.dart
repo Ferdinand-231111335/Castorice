@@ -6,30 +6,60 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:awesome_notifications/awesome_notifications.dart';
 
 class PoinPage extends StatefulWidget {
-  const PoinPage({super.key});
+  final FirebaseFirestore? firestore;
+  final FirebaseAuth? auth;
+  final FirebaseAnalytics? analytics;
+  final int? initialPoin;
+  final bool isTest;
+
+  const PoinPage({
+    super.key,
+    this.firestore,
+    this.auth,
+    this.analytics,
+    this.initialPoin,
+    this.isTest = false,
+  });
 
   @override
   State<PoinPage> createState() => _PoinPageState();
 }
 
 class _PoinPageState extends State<PoinPage> {
-  final FirebaseAuth _auth = FirebaseAuth.instance;
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  final FirebaseAnalytics analytics = FirebaseAnalytics.instance;
+  late FirebaseAuth _auth;
+  late FirebaseFirestore _firestore;
+  late FirebaseAnalytics analytics;
 
   int totalPoin = 0;
-  String get uid => _auth.currentUser!.uid;
+
+  String? get uid => _auth.currentUser?.uid;
 
   @override
   void initState() {
-    super.initState();
-    _requestNotifPermission();
-    _loadPoin();
-    _scheduleMisiReminder();
-    _scheduleVoucherExpiredNotifTest();
+  super.initState();
+
+  if (widget.isTest) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      setState(() {
+        totalPoin = widget.initialPoin ?? 0;
+      });
+    });
+    return;
   }
+  
+  _auth = widget.auth ?? FirebaseAuth.instance;
+  _firestore = widget.firestore ?? FirebaseFirestore.instance;
+  analytics = widget.analytics ?? FirebaseAnalytics.instance;
+
+  _requestNotifPermission();
+  _loadPoin();
+  _scheduleMisiReminder();
+  _scheduleVoucherExpiredNotifTest();
+}
+
 
   Future<void> _requestNotifPermission() async {
+    if (widget.isTest) return;
     final isAllowed = await AwesomeNotifications().isNotificationAllowed();
     if (!isAllowed) {
       await AwesomeNotifications().requestPermissionToSendNotifications();
@@ -41,6 +71,10 @@ class _PoinPageState extends State<PoinPage> {
   }
 
   Future<void> _loadPoin() async {
+    if (widget.isTest) return;
+    final user = _auth.currentUser;
+    if (user == null) return;
+
     final doc = await _firestore.collection('users').doc(uid).get();
     if (doc.exists) {
       setState(() {
@@ -50,6 +84,7 @@ class _PoinPageState extends State<PoinPage> {
   }
 
   Future<void> _showRedeemNotification(String hadiah, int biaya) async {
+    if (widget.isTest) return;
     final prefs = await SharedPreferences.getInstance();
     final isNotifEnabled = prefs.getBool('isNotificationEnabled') ?? true;
     if (!isNotifEnabled) return;
@@ -58,7 +93,7 @@ class _PoinPageState extends State<PoinPage> {
       content: NotificationContent(
         id: _generateNotifId(),
         channelKey: 'basic_channel',
-        title: "Penukaran Berhasil 🎉",
+        title: "Penukaran Berhasil",
         body: "$biaya poin berhasil ditukar dengan $hadiah",
         category: NotificationCategory.Status,
       ),
@@ -73,13 +108,14 @@ class _PoinPageState extends State<PoinPage> {
   }
 
   Future<void> _scheduleMisiReminder() async {
+    if (widget.isTest) return;
     final now = DateTime.now().add(const Duration(seconds: 10));
 
     await AwesomeNotifications().createNotification(
       content: NotificationContent(
         id: _generateNotifId(),
         channelKey: 'basic_channel',
-        title: "Ayo Kerjakan Misi 🌱",
+        title: "Ayo Kerjakan Misi",
         body: "Kamu belum mengerjakan misi hari ini.",
         wakeUpScreen: true,
       ),
@@ -103,13 +139,14 @@ class _PoinPageState extends State<PoinPage> {
   }
 
   Future<void> _scheduleVoucherExpiredNotifTest() async {
+    if (widget.isTest) return;
     final now = DateTime.now().add(const Duration(seconds: 15));
 
     await AwesomeNotifications().createNotification(
       content: NotificationContent(
         id: _generateNotifId(),
         channelKey: 'basic_channel',
-        title: "Voucher Hampir Kedaluwarsa ⏰",
+        title: "Voucher Hampir Kedaluwarsa",
         body: "Segera gunakan voucher kamu sebelum expired!",
         wakeUpScreen: true,
       ),
@@ -133,10 +170,17 @@ class _PoinPageState extends State<PoinPage> {
   }
 
   Future<void> _redeemPoin(int biaya, String hadiah) async {
+    if (widget.isTest) {
+      if (totalPoin < biaya) return;
+      setState(() {
+        totalPoin -= biaya;
+      });
+    return;
+    }
     if (totalPoin < biaya) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text("Poin tidak cukup untuk $hadiah")));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Poin tidak cukup untuk $hadiah")),
+      );
       return;
     }
 

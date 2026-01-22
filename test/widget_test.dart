@@ -1,30 +1,65 @@
-// This is a basic Flutter widget test.
-//
-// To perform an interaction with a widget in your test, use the WidgetTester
-// utility in the flutter_test package. For example, you can send tap and scroll
-// gestures. You can also use WidgetTester to find child widgets in the widget
-// tree, read text, and verify that the values of widget properties are correct.
+import 'package:flutter/material.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:firebase_analytics_platform_interface/firebase_analytics_platform_interface.dart';
 
-// import 'package:flutter/material.dart';
-// import 'package:flutter_test/flutter_test.dart';
+import 'package:project_kelompok/screen/misi_page.dart' as misi;
+import 'package:project_kelompok/screen/poin_page.dart' as poin;
+import 'package:project_kelompok/widget/rewarded_ads.dart';
 
-// import 'package:project_kelompok/main.dart';
+class FakeAnalytics extends FirebaseAnalyticsPlatform {
+  @override
+  Future<void> logEvent({
+    AnalyticsCallOptions? callOptions,
+    required String name,
+    Map<String, Object?>? parameters,
+  }) async {}
+}
 
-// void main() {
-//   testWidgets('Counter increments smoke test', (WidgetTester tester) async {
-//     // Build our app and trigger a frame.
-//     await tester.pumpWidget(const MyApp());
+void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
 
-//     // Verify that our counter starts at 0.
-//     expect(find.text('0'), findsOneWidget);
-//     expect(find.text('1'), findsNothing);
+  setUpAll(() {
+    FirebaseAnalyticsPlatform.instance = FakeAnalytics();
+    RewardedAds.isTest = true;
+  });
 
-//     // Tap the '+' icon and trigger a frame.
-//     await tester.tap(find.byIcon(Icons.add));
-//     await tester.pump();
+  testWidgets('MisiPage menampilkan daftar misi', (tester) async {
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: Scaffold(
+          body: misi.MisiPage(
+            isTest: true,
+          ),
+        ),
+      ),
+    );
 
-//     // Verify that our counter has incremented.
-//     expect(find.text('0'), findsNothing);
-//     expect(find.text('1'), findsOneWidget);
-//   });
-// }
+    await tester.pumpAndSettle();
+
+    expect(find.text('Menanam Pohon'), findsOneWidget);
+    expect(find.text('Hemat Air'), findsOneWidget);
+    expect(find.text('Daur Ulang'), findsOneWidget);
+    expect(find.text('Tonton Iklan'), findsOneWidget);
+  });
+
+  testWidgets('PoinPage menampilkan total poin dan reward', (tester) async {
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: Scaffold(
+          body: poin.PoinPage(
+            initialPoin: 100,
+            isTest: true,
+          ),
+        ),
+      ),
+    );
+
+    await tester.pumpAndSettle();
+    expect(find.text('Total Poin Kamu: 100'), findsOneWidget);
+
+    expect(find.text('Voucher Belanja'), findsOneWidget);
+    expect(find.text('Merchandise Evergreen'), findsOneWidget);
+    expect(find.text('Voucher Makanan'), findsOneWidget);
+    expect(find.text('Donasi Tanam Pohon'), findsOneWidget);
+  });
+}

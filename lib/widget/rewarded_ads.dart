@@ -2,12 +2,14 @@ import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:flutter/foundation.dart';
 
 class RewardedAds {
+  static bool isTest = false;
   static RewardedAd? _rewardedAd;
   static bool _isLoading = false;
 
   static const String _adUnitId =
       'ca-app-pub-3940256099942544/5224354917';
   static void load() {
+    if (isTest) return;
     if (_isLoading || _rewardedAd != null) return;
 
     _isLoading = true;
@@ -33,8 +35,13 @@ class RewardedAds {
 
   static void show({
     required VoidCallback onUserEarnedReward,
-    VoidCallback? onAdClosed,
+    required VoidCallback onAdClosed,
   }) {
+    if (isTest) {
+      onUserEarnedReward();
+      onAdClosed();
+      return;
+    }
     if (_rewardedAd == null) {
       debugPrint('Rewarded Ad belum ada');
       load();
@@ -47,7 +54,7 @@ class RewardedAds {
         ad.dispose();
         _rewardedAd = null;
         load();
-        onAdClosed?.call();
+        onAdClosed.call();
       },
       onAdFailedToShowFullScreenContent: (ad, error) {
         ad.dispose();

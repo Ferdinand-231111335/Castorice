@@ -3,14 +3,14 @@ class User {
   final String username;
   final String email;
   final String password;
-  final String? profilePicture; // Tambahkan ini
+  final String? profilePicture;
 
   User({
     this.id,
     required this.username,
     required this.email,
     required this.password,
-    this.profilePicture, // Tambahkan ini
+    this.profilePicture,
   });
 
   Map<String, dynamic> toMap() {
@@ -19,7 +19,7 @@ class User {
       'username': username,
       'email': email,
       'password': password,
-      'profilePicture': profilePicture, // Tambahkan ini
+      'profilePicture': profilePicture,
     };
   }
 
@@ -29,7 +29,7 @@ class User {
       username: map['username'],
       email: map['email'],
       password: map['password'],
-      profilePicture: map['profilePicture'], // Tambahkan ini
+      profilePicture: map['profilePicture'],
     );
   }
 
@@ -38,14 +38,14 @@ class User {
     String? username,
     String? email,
     String? password,
-    String? profilePicture, // Tambahkan ini
+    String? profilePicture,
   }) {
     return User(
       id: id ?? this.id,
       username: username ?? this.username,
       email: email ?? this.email,
       password: password ?? this.password,
-      profilePicture: profilePicture ?? this.profilePicture, // Tambahkan ini
+      profilePicture: profilePicture ?? this.profilePicture,
     );
   }
 }
