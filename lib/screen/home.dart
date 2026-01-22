@@ -8,8 +8,8 @@ import 'package:project_kelompok/screen/about.dart';
 import 'package:project_kelompok/screen/misi_page.dart';
 import 'package:project_kelompok/screen/signin.dart';
 import 'package:project_kelompok/screen/ticket_page.dart';
+import 'package:project_kelompok/widget/clock_text.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:intl/intl.dart';
 
 import '../main.dart';
 import '../database/evergreen_db.dart';
@@ -35,9 +35,6 @@ class _HomeState extends State<Home> {
   String? profilePicturePath;
   int? totalPoin;
 
-  late Timer _timer;
-  String _currentTimeWIB = '';
-
   final List<Widget> _pages = const [BeritaPage(), MisiPage(), PoinPage()];
 
   @override
@@ -45,19 +42,16 @@ class _HomeState extends State<Home> {
     super.initState();
     _loadDataFromDb();
     _loadUserData();
-    _startTimer();
 
-    /// ✅ TAMBAHAN NOTIFIKASI
+
     _checkNotificationPermission();
   }
 
   @override
   void dispose() {
-    _timer.cancel();
     super.dispose();
   }
 
-  /// ✅ CEK IZIN NOTIFIKASI
   Future<void> _checkNotificationPermission() async {
     final isAllowed = await AwesomeNotifications().isNotificationAllowed();
 
@@ -66,23 +60,6 @@ class _HomeState extends State<Home> {
     }
   }
 
-  void _startTimer() {
-    _updateTime();
-    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      _updateTime();
-    });
-  }
-
-  void _updateTime() {
-    final now = DateTime.now();
-    final formatter = DateFormat('HH:mm:ss');
-
-    if (mounted) {
-      setState(() {
-        _currentTimeWIB = formatter.format(now);
-      });
-    }
-  }
 
   Future<void> _loadUserData() async {
     final prefs = await SharedPreferences.getInstance();
@@ -178,14 +155,7 @@ class _HomeState extends State<Home> {
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16.0),
             child: Center(
-              child: Text(
-                _currentTimeWIB,
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                  color: isDark ? Colors.white : Colors.black,
-                ),
-              ),
+              child: ClockText()
             ),
           ),
         ],
